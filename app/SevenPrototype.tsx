@@ -80,16 +80,16 @@ function dayIdForDate(date: Date): DayId {
 
 const backgroundSets: Record<Exclude<BackgroundTheme, "custom">, Record<Period, string>> = {
   karelia: {
-    morning: "/images/seven-karelia-morning-v1.png",
-    day: "/images/seven-karelia-day-v1.png",
-    twilight: "/images/seven-karelia-twilight-v1.png",
-    night: "/images/seven-karelia-night-v1.png",
+    morning: "images/seven-karelia-morning-v1.png",
+    day: "images/seven-karelia-day-v1.png",
+    twilight: "images/seven-karelia-twilight-v1.png",
+    night: "images/seven-karelia-night-v1.png",
   },
   forest: {
-    morning: "/images/seven-karelia-forest-option2-morning-v1.png",
-    day: "/images/seven-karelia-forest-option2-day-v1.png",
-    twilight: "/images/seven-karelia-forest-option2-twilight-v1.png",
-    night: "/images/seven-karelia-forest-option2-night-v1.png",
+    morning: "images/seven-karelia-forest-option2-morning-v1.png",
+    day: "images/seven-karelia-forest-option2-day-v1.png",
+    twilight: "images/seven-karelia-forest-option2-twilight-v1.png",
+    night: "images/seven-karelia-forest-option2-night-v1.png",
   },
 };
 
