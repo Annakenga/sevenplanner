@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Seven — Неделя в твоём ритме",
+  title: "Seven. Неделя в твоем ритме",
   description: "Приватный недельный планер без регистрации.",
   icons: {
     icon: [
