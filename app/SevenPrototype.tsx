@@ -4,8 +4,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type DayId = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 type WeekId = "current" | "next";
-type Period = "morning" | "day" | "twilight" | "night";
-type BackgroundTheme = "karelia" | "forest" | "custom";
+type BackgroundTheme = "forest" | "custom";
 
 type Task = {
   id: number;
@@ -95,32 +94,12 @@ function sortTasks(tasks: Task[]) {
   });
 }
 
-function timePeriod(hour: number): Period {
-  if (hour >= 5 && hour < 9) return "morning";
-  if (hour >= 9 && hour < 17) return "day";
-  if (hour >= 17 && hour < 21) return "twilight";
-  return "night";
-}
-
 function dayIdForDate(date: Date): DayId {
   const days: DayId[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
   return days[date.getDay()];
 }
 
-const backgroundSets: Record<Exclude<BackgroundTheme, "custom">, Record<Period, string>> = {
-  karelia: {
-    morning: "images/seven-karelia-morning-v1.png",
-    day: "images/seven-karelia-day-v1.png",
-    twilight: "images/seven-karelia-twilight-v1.png",
-    night: "images/seven-karelia-night-v1.png",
-  },
-  forest: {
-    morning: "images/seven-karelia-forest-option2-morning-v1.png",
-    day: "images/seven-karelia-forest-option2-day-v1.png",
-    twilight: "images/seven-karelia-forest-option2-twilight-v1.png",
-    night: "images/seven-karelia-forest-option2-night-v1.png",
-  },
-};
+const builtInBackground = "images/seven-karelia-forest-mist-night-v1.png";
 
 function ScrollableTaskList({ children, layoutKey }: { children: React.ReactNode; layoutKey: string }) {
   const listRef = useRef<HTMLDivElement>(null);
@@ -198,9 +177,8 @@ function ScrollableTaskList({ children, layoutKey }: { children: React.ReactNode
 export default function SevenPrototype() {
   const [weeks, setWeeks] = useState<Record<WeekId, Week>>(emptyWeeks);
   const [weekId, setWeekId] = useState<WeekId>("current");
-  const [period, setPeriod] = useState<Period>("day");
   const [calendarDate, setCalendarDate] = useState(() => new Date());
-  const [backgroundTheme, setBackgroundTheme] = useState<BackgroundTheme>("karelia");
+  const [backgroundTheme, setBackgroundTheme] = useState<BackgroundTheme>("forest");
   const [customBackground, setCustomBackground] = useState<string | null>(null);
   const [backgroundMenuOpen, setBackgroundMenuOpen] = useState(false);
   const [backgroundError, setBackgroundError] = useState("");
@@ -215,18 +193,14 @@ export default function SevenPrototype() {
   const [important, setImportant] = useState(false);
   const [dragged, setDragged] = useState<{ week: WeekId; day: DayId; taskId: number } | null>(null);
   const weekHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dragToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dragToastTimer = useRef<number | null>(null);
   const backgroundFileRef = useRef<HTMLInputElement>(null);
   const backgroundSettingsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const updateClock = () => {
-      const now = new Date();
-      setPeriod(timePeriod(now.getHours()));
-      setCalendarDate(now);
-    };
-    updateClock();
-    const periodTimer = window.setInterval(updateClock, 60_000);
+    const updateCalendarDate = () => setCalendarDate(new Date());
+    updateCalendarDate();
+    const calendarTimer = window.setInterval(updateCalendarDate, 60_000);
 
     const welcomeDismissed = window.localStorage.getItem("seven-welcome-dismissed") === "yes";
     const savedWeeks = storedWeeks(window.localStorage.getItem(taskStorageKey));
@@ -235,15 +209,15 @@ export default function SevenPrototype() {
     const initTimer = window.setTimeout(() => {
       if (savedWeeks) setWeeks(savedWeeks);
       if (savedCustomBackground) setCustomBackground(savedCustomBackground);
-      if (savedBackgroundTheme === "forest" || savedBackgroundTheme === "custom") {
-        setBackgroundTheme(savedBackgroundTheme === "custom" && !savedCustomBackground ? "karelia" : savedBackgroundTheme);
+      if (savedBackgroundTheme === "custom" && savedCustomBackground) {
+        setBackgroundTheme("custom");
       }
       if (!welcomeDismissed) setWelcome(true);
       setInitialized(true);
     }, 0);
 
     return () => {
-      window.clearInterval(periodTimer);
+      window.clearInterval(calendarTimer);
       window.clearTimeout(initTimer);
     };
   }, []);
@@ -380,14 +354,6 @@ export default function SevenPrototype() {
     setDragToast(false);
   };
 
-  const cycleBuiltInBackground = () => {
-    const nextTheme: Exclude<BackgroundTheme, "custom"> = backgroundTheme === "forest" ? "karelia" : "forest";
-    setBackgroundTheme(nextTheme);
-    setBackgroundError("");
-    setBackgroundMenuOpen(false);
-    window.localStorage.setItem("seven-background-theme", nextTheme);
-  };
-
   const uploadCustomBackground = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -441,7 +407,7 @@ export default function SevenPrototype() {
 
   const backgroundUrl = backgroundTheme === "custom" && customBackground
     ? customBackground
-    : backgroundSets[backgroundTheme === "forest" ? "forest" : "karelia"][period];
+    : builtInBackground;
 
   const renderTask = (day: DayId, task: Task) => (
     <article
@@ -497,7 +463,7 @@ export default function SevenPrototype() {
   );
 
   return (
-    <main className={`seven-shell period-${period}`} style={{ backgroundImage: `linear-gradient(180deg, rgba(3,15,28,.18), rgba(2,14,25,.48)), url("${backgroundUrl}")` }}>
+    <main className="seven-shell" style={{ backgroundImage: `url("${backgroundUrl}")` }}>
       <div className="mobile-message">
         <div className="mobile-message-card">
           <div className="brand-logo">Seven</div>
@@ -510,12 +476,18 @@ export default function SevenPrototype() {
         <header className="topbar">
           <div className="metrics">
             <div className="progress-wrap">
-              <div className="progress-ring" style={{ "--progress": `${progress * 3.6}deg` } as React.CSSProperties}><span>{progress}%</span></div>
+              <div className="progress-ring">
+                <svg className="progress-ring-svg" viewBox="0 0 68 68" aria-hidden="true">
+                  <circle className="progress-ring-track" cx="34" cy="34" r="31" pathLength="100" />
+                  <circle className="progress-ring-value" cx="34" cy="34" r="31" pathLength="100" strokeDasharray={`${progress} 100`} />
+                </svg>
+                <span>{progress}%</span>
+              </div>
               <div><strong>Прогресс недели</strong><small>{weekId === "current" ? "Текущая неделя" : "Следующая неделя"}</small></div>
             </div>
             <div className="metric"><strong>{completedCount} <span>/ {allTasks.length}</span></strong><small>Выполнено</small></div>
-            <div className="metric metric-important"><strong>{importantCount}</strong><small>Важные в фокусе</small></div>
-            <div className="metric metric-ordinary"><strong>{ordinaryCount}</strong><small>Обычные в фокусе</small></div>
+            <div className="metric metric-important"><strong>{importantCount}</strong><small>Важные</small></div>
+            <div className="metric metric-ordinary"><strong>{ordinaryCount}</strong><small>Обычные</small></div>
           </div>
           <div className="brand-area">
             <div className="brand-logo">Seven</div>
@@ -532,7 +504,6 @@ export default function SevenPrototype() {
                 </button>
                 {backgroundMenuOpen && (
                   <div className="background-menu" role="menu" aria-label="Настройки фона">
-                    <button type="button" role="menuitem" onClick={cycleBuiltInBackground}>Обновить фон</button>
                     <button type="button" role="menuitem" onClick={() => backgroundFileRef.current?.click()}>Загрузить свой фон</button>
                     {backgroundError && <p role="alert">{backgroundError}</p>}
                   </div>
