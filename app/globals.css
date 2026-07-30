@@ -135,7 +135,17 @@ button, a { -webkit-tap-highlight-color: transparent; }
   transition: stroke-dasharray .3s ease;
 }
 
-.progress-ring span { position: relative; z-index: 1; color: #fff; font-size: 18px; font-weight: 700; }
+.progress-ring span {
+  position: relative;
+  z-index: 1;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -.35px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 .progress-wrap strong, .progress-wrap small { display: block; }
 .progress-wrap strong { font-size: 15px; font-weight: 600; }
 .progress-wrap small { color: rgba(16,39,55,.72); margin-top: 5px; font-size: 13.2px; }
@@ -691,7 +701,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 .task-important { background: var(--stat-card); border-color: var(--stat-card-border); }
 .task-important:not(.task-completed):hover { background: rgba(255,255,255,.80); border-color: rgba(255,255,255,.66); }
-.day-panel.today .task-important { background: var(--stat-card); border-color: var(--stat-card-border); }
+.day-panel.today .task-important:not(.task-completed) { background: var(--stat-card); border-color: var(--stat-card-border); }
 .day-panel.today .task-important:not(.task-completed):hover { background: rgba(255,255,255,.80); border-color: rgba(255,255,255,.66); }
 
 .task-completed {
@@ -882,6 +892,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .metric strong { font-size: 23px; }
   .progress-wrap { padding-right: 17px; }
   .progress-ring { width: 60px; }
+  .progress-ring span { font-size: 15px; }
   .day-full { display: none; }
   .day-short { display: inline; }
   .day-panel { padding-inline: 10px; }
@@ -893,6 +904,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .desktop-planner { --header-to-grid-shift: 3px; padding-block: 14px 16px; gap: 12px; }
   .topbar { min-height: 78px; }
   .progress-ring { width: 56px; }
+  .progress-ring span { font-size: 14px; }
   .brand-logo { font-size: 30px; }
   .week-switch button { padding-block: 8px; }
   .settings-trigger { width: 48px; height: 48px; }
