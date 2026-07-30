@@ -684,7 +684,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   color: rgba(219, 240, 212, .52);
   box-shadow: none;
   cursor: default;
-  opacity: .70;
+  opacity: .85;
 }
 
 .task-card:not(.task-completed) + .task-completed { margin-top: 14px; }

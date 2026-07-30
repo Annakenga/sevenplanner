@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type DayId = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 type WeekId = "current" | "next";
-type BackgroundTheme = "forest" | "custom";
+type BackgroundTheme = "lake" | "balloon" | "custom";
 
 type Task = {
   id: number;
@@ -99,7 +99,10 @@ function dayIdForDate(date: Date): DayId {
   return days[date.getDay()];
 }
 
-const builtInBackground = "images/seven-karelia-forest-mist-night-v1.png";
+const builtInBackgrounds: Record<Exclude<BackgroundTheme, "custom">, string> = {
+  lake: "images/seven-karelia-forest-mist-night-v1.png",
+  balloon: "images/golden-horizons-balloon-3840x2400.jpg",
+};
 
 function ScrollableTaskList({ children, layoutKey }: { children: React.ReactNode; layoutKey: string }) {
   const listRef = useRef<HTMLDivElement>(null);
@@ -178,7 +181,7 @@ export default function SevenPrototype() {
   const [weeks, setWeeks] = useState<Record<WeekId, Week>>(emptyWeeks);
   const [weekId, setWeekId] = useState<WeekId>("current");
   const [calendarDate, setCalendarDate] = useState(() => new Date());
-  const [backgroundTheme, setBackgroundTheme] = useState<BackgroundTheme>("forest");
+  const [backgroundTheme, setBackgroundTheme] = useState<BackgroundTheme>("lake");
   const [customBackground, setCustomBackground] = useState<string | null>(null);
   const [backgroundMenuOpen, setBackgroundMenuOpen] = useState(false);
   const [backgroundError, setBackgroundError] = useState("");
@@ -211,6 +214,8 @@ export default function SevenPrototype() {
       if (savedCustomBackground) setCustomBackground(savedCustomBackground);
       if (savedBackgroundTheme === "custom" && savedCustomBackground) {
         setBackgroundTheme("custom");
+      } else if (savedBackgroundTheme === "balloon") {
+        setBackgroundTheme("balloon");
       }
       if (!welcomeDismissed) setWelcome(true);
       setInitialized(true);
@@ -354,6 +359,14 @@ export default function SevenPrototype() {
     setDragToast(false);
   };
 
+  const cycleBuiltInBackground = () => {
+    const nextTheme: Exclude<BackgroundTheme, "custom"> = backgroundTheme === "lake" ? "balloon" : "lake";
+    setBackgroundTheme(nextTheme);
+    setBackgroundError("");
+    setBackgroundMenuOpen(false);
+    window.localStorage.setItem("seven-background-theme", nextTheme);
+  };
+
   const uploadCustomBackground = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -407,7 +420,7 @@ export default function SevenPrototype() {
 
   const backgroundUrl = backgroundTheme === "custom" && customBackground
     ? customBackground
-    : builtInBackground;
+    : builtInBackgrounds[backgroundTheme === "balloon" ? "balloon" : "lake"];
 
   const renderTask = (day: DayId, task: Task) => (
     <article
@@ -504,6 +517,7 @@ export default function SevenPrototype() {
                 </button>
                 {backgroundMenuOpen && (
                   <div className="background-menu" role="menu" aria-label="Настройки фона">
+                    <button type="button" role="menuitem" onClick={cycleBuiltInBackground}>Обновить фон</button>
                     <button type="button" role="menuitem" onClick={() => backgroundFileRef.current?.click()}>Загрузить свой фон</button>
                     {backgroundError && <p role="alert">{backgroundError}</p>}
                   </div>
