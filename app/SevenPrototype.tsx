@@ -16,16 +16,45 @@ type Task = {
 };
 
 type Week = Record<DayId, Task[]>;
+type DayMeta = { id: DayId; short: string; full: string };
+type CalendarDay = DayMeta & { date: string };
 
-const dayMeta: Array<{ id: DayId; short: string; full: string; date: string }> = [
-  { id: "mon", short: "Пн", full: "Понедельник", date: "27 июля" },
-  { id: "tue", short: "Вт", full: "Вторник", date: "28 июля" },
-  { id: "wed", short: "Ср", full: "Среда", date: "29 июля" },
-  { id: "thu", short: "Чт", full: "Четверг", date: "30 июля" },
-  { id: "fri", short: "Пт", full: "Пятница", date: "31 июля" },
-  { id: "sat", short: "Сб", full: "Суббота", date: "1 августа" },
-  { id: "sun", short: "Вс", full: "Воскресенье", date: "2 августа" },
+const dayMeta: DayMeta[] = [
+  { id: "mon", short: "Пн", full: "Понедельник" },
+  { id: "tue", short: "Вт", full: "Вторник" },
+  { id: "wed", short: "Ср", full: "Среда" },
+  { id: "thu", short: "Чт", full: "Четверг" },
+  { id: "fri", short: "Пт", full: "Пятница" },
+  { id: "sat", short: "Сб", full: "Суббота" },
+  { id: "sun", short: "Вс", full: "Воскресенье" },
 ];
+
+const monthNames = [
+  "января", "февраля", "марта", "апреля", "мая", "июня",
+  "июля", "августа", "сентября", "октября", "ноября", "декабря",
+];
+
+function startOfWeek(date: Date) {
+  const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const daysSinceMonday = (monday.getDay() + 6) % 7;
+  monday.setDate(monday.getDate() - daysSinceMonday);
+  return monday;
+}
+
+function dateLabel(date: Date) {
+  return `${date.getDate()} ${monthNames[date.getMonth()]}`;
+}
+
+function daysForWeek(date: Date, weekId: WeekId): CalendarDay[] {
+  const monday = startOfWeek(date);
+  if (weekId === "next") monday.setDate(monday.getDate() + 7);
+
+  return dayMeta.map((day, index) => {
+    const dayDate = new Date(monday);
+    dayDate.setDate(monday.getDate() + index);
+    return { ...day, date: dateLabel(dayDate) };
+  });
+}
 
 const emptyWeek = (): Week => ({
   mon: [],
@@ -170,7 +199,7 @@ export default function SevenPrototype() {
   const [weeks, setWeeks] = useState<Record<WeekId, Week>>(emptyWeeks);
   const [weekId, setWeekId] = useState<WeekId>("current");
   const [period, setPeriod] = useState<Period>("day");
-  const [todayDayId, setTodayDayId] = useState<DayId>(() => dayIdForDate(new Date()));
+  const [calendarDate, setCalendarDate] = useState(() => new Date());
   const [backgroundTheme, setBackgroundTheme] = useState<BackgroundTheme>("karelia");
   const [customBackground, setCustomBackground] = useState<string | null>(null);
   const [backgroundMenuOpen, setBackgroundMenuOpen] = useState(false);
@@ -194,7 +223,7 @@ export default function SevenPrototype() {
     const updateClock = () => {
       const now = new Date();
       setPeriod(timePeriod(now.getHours()));
-      setTodayDayId(dayIdForDate(now));
+      setCalendarDate(now);
     };
     updateClock();
     const periodTimer = window.setInterval(updateClock, 60_000);
@@ -258,6 +287,8 @@ export default function SevenPrototype() {
   }, [initialized, welcome]);
 
   const week = weeks[weekId];
+  const displayDays = useMemo(() => daysForWeek(calendarDate, weekId), [calendarDate, weekId]);
+  const todayDayId = dayIdForDate(calendarDate);
   const allTasks = useMemo(() => Object.values(week).flat(), [week]);
   const completedCount = allTasks.filter((task) => task.completed).length;
   const importantCount = allTasks.filter((task) => task.important && !task.completed).length;
@@ -444,7 +475,7 @@ export default function SevenPrototype() {
     </article>
   );
 
-  const renderDay = (day: (typeof dayMeta)[number], compact = false) => (
+  const renderDay = (day: CalendarDay, compact = false) => (
     <section
       className={`day-panel ${day.id === todayDayId && weekId === "current" ? "today" : ""} ${compact ? "compact-day" : ""}`}
       onDragOver={(event) => event.preventDefault()}
@@ -517,10 +548,10 @@ export default function SevenPrototype() {
         </header>
 
         <section className="week-grid" aria-label="Задачи на неделю">
-          {dayMeta.slice(0, 5).map((day) => renderDay(day))}
+          {displayDays.slice(0, 5).map((day) => renderDay(day))}
           <div className="weekend-panel">
-            {renderDay(dayMeta[5], true)}
-            {renderDay(dayMeta[6], true)}
+            {renderDay(displayDays[5], true)}
+            {renderDay(displayDays[6], true)}
           </div>
         </section>
 
