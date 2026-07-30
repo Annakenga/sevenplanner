@@ -439,10 +439,16 @@ export default function SevenPrototype() {
         <div className="task-reveal">
           {task.description && <p className="task-description">{task.description}</p>}
           <div className="task-actions">
-            <button type="button" data-tip="Отметить выполненной" aria-label="Отметить выполненной" onClick={() => updateTask(day, task.id, (item) => ({ ...item, completed: true }))}><span className="action-symbol" aria-hidden="true">✓</span></button>
-            <button type="button" data-tip={task.important ? "Убрать важность" : "Отметить важной"} aria-label={task.important ? "Убрать важность" : "Отметить важной"} onClick={() => updateTask(day, task.id, (item) => ({ ...item, important: !item.important }))}><span className="importance-dot action-importance-dot" aria-hidden="true" /></button>
+            <button type="button" data-tip="Отметить выполненной" aria-label="Отметить выполненной" onClick={() => updateTask(day, task.id, (item) => ({ ...item, completed: true }))}>
+              <svg className="quick-action-icon quick-action-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.5 9.3 18 20 6" /></svg>
+            </button>
+            <button type="button" data-tip={task.important ? "Убрать важность" : "Отметить важной"} aria-label={task.important ? "Убрать важность" : "Отметить важной"} onClick={() => updateTask(day, task.id, (item) => ({ ...item, important: !item.important }))}>
+              <svg className="quick-action-icon quick-action-star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M2 12h20M4.9 4.9l14.2 14.2M19.1 4.9 4.9 19.1" /></svg>
+            </button>
             <button type="button" data-tip="Редактировать" aria-label="Редактировать" onClick={() => openEditor(day, task)}><span className="edit-icon" aria-hidden="true" /></button>
-            <button type="button" data-tip="Удалить" aria-label="Удалить" onClick={() => setDeleteTarget({ day, task })}><span className="action-symbol delete-symbol" aria-hidden="true">✗</span></button>
+            <button type="button" data-tip="Удалить" aria-label="Удалить" onClick={() => setDeleteTarget({ day, task })}>
+              <svg className="quick-action-icon quick-action-delete" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4 19 20M19 4 5 20" /></svg>
+            </button>
           </div>
         </div>
       )}
