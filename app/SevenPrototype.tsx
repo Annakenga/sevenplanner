@@ -94,6 +94,16 @@ function sortTasks(tasks: Task[]) {
   });
 }
 
+function numberTasks(tasks: Task[]) {
+  let activeNumber = 0;
+  let completedNumber = 0;
+
+  return sortTasks(tasks).map((task) => ({
+    task,
+    number: task.completed ? ++completedNumber : ++activeNumber,
+  }));
+}
+
 function dayIdForDate(date: Date): DayId {
   const days: DayId[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
   return days[date.getDay()];
@@ -597,7 +607,7 @@ export default function SevenPrototype() {
     ? customBackground
     : builtInBackgrounds[backgroundTheme === "balloon" ? "balloon" : "lake"];
 
-  const renderTask = (day: DayId, task: Task) => (
+  const renderTask = (day: DayId, task: Task, taskNumber: number) => (
     <article
       className={`task-card ${task.important ? "task-important" : ""} ${task.completed ? "task-completed" : ""}`}
       draggable={!task.completed}
@@ -606,7 +616,10 @@ export default function SevenPrototype() {
       key={task.id}
     >
       <div className="task-title-row">
-        <p>{task.title}</p>
+        <div className="task-title-main">
+          <span className="task-number" aria-hidden="true">{String(taskNumber).padStart(2, "0")}</span>
+          <p>{task.title}</p>
+        </div>
         {task.important && !task.completed && <ImportantIcon className="task-importance-dot" label="Важная задача" />}
       </div>
       {!task.completed && (
@@ -648,8 +661,8 @@ export default function SevenPrototype() {
         </div>
         {day.id === todayDayId && weekId === "current" && <span className="today-label">Сегодня</span>}
       </header>
-      <ScrollableTaskList layoutKey={week[day.id].map((task) => `${task.id}:${task.title}:${task.completed}`).join("|")}>
-        {sortTasks(week[day.id]).map((task) => renderTask(day.id, task))}
+      <ScrollableTaskList layoutKey={week[day.id].map((task) => `${task.id}:${task.title}:${task.completed}:${task.important}`).join("|")}>
+        {numberTasks(week[day.id]).map(({ task, number }) => renderTask(day.id, task, number))}
       </ScrollableTaskList>
       <button className="add-task" type="button" aria-label="Добавить задачу" onClick={() => openEditor(day.id)}><span aria-hidden="true">＋</span></button>
     </section>

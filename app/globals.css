@@ -113,7 +113,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   border-radius: inherit;
   background: linear-gradient(90deg, #ffc09a 0%, #ff8f5d 44%, var(--orange) 100%);
   box-shadow: 0 2px 8px rgba(255,107,61,.22);
-  transition: width .3s ease;
+  transition: width .85s cubic-bezier(.22,.8,.32,1);
 }
 
 .completion-summary {
@@ -445,6 +445,15 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 
 .task-title-row { display: flex; align-items: center; justify-content: space-between; gap: 9px; min-height: 24px; }
+.task-title-main { display: flex; min-width: 0; align-items: baseline; gap: 8px; }
+.task-number {
+  flex: 0 0 auto;
+  color: rgba(16,39,55,.72);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
 .task-title-row p { margin: 0; display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; color: #102737; font-size: 14px; font-weight: 500; line-height: 1.4; }
 .importance-dot {
   display: block;
@@ -479,7 +488,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   box-shadow: none;
 }
 
-.task-description { margin: 0 0 13px; color: rgba(16,39,55,.62); font-size: 11px; line-height: 1.48; }
+.task-description { margin: 0 0 13px; color: rgba(16,39,55,.62); font-size: 12px; line-height: 1.48; }
 .task-actions { display: flex; gap: 5px; }
 
 .task-actions button {
@@ -544,6 +553,13 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 .task-card:not(.task-completed) + .task-completed { margin-top: 14px; }
 .task-completed .task-title-row { min-height: 24px; }
+.task-completed .task-number {
+  color: rgba(239,244,247,.64);
+  font-weight: 300;
+  text-decoration-line: line-through;
+  text-decoration-color: rgba(255,255,255,.38);
+  text-decoration-thickness: 1.3px;
+}
 .task-completed .task-title-row p {
   display: block;
   color: inherit;
@@ -555,7 +571,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   text-decoration-color: rgba(255,255,255,.38);
   text-decoration-thickness: 1.3px;
 }
-.restore-task { display: none; margin-top: 7px; border: 0; padding: 0; background: transparent; color: var(--green); cursor: pointer; font-size: 12px; }
+.restore-task { display: none; margin-top: 7px; border: 0; padding: 0; background: transparent; color: #397c4d; cursor: pointer; font-size: 12px; }
 .task-completed:hover .restore-task { display: block; }
 
 .add-task {
