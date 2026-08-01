@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 
 type DayId = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 type WeekId = "current" | "next";
@@ -101,8 +101,185 @@ function dayIdForDate(date: Date): DayId {
 
 const builtInBackgrounds: Record<Exclude<BackgroundTheme, "custom">, string> = {
   lake: "images/seven-karelia-forest-mist-night-v1.png",
-  balloon: "images/golden-horizons-balloon-3840x2400.jpg",
+  balloon: "images/seven-bliss-night-3840x2160.jpg",
 };
+
+function ImportantIcon({ className = "", label }: { className?: string; label?: string }) {
+  const gradientId = useId();
+
+  return (
+    <svg
+      className={`importance-dot ${className}`.trim()}
+      viewBox="0 0 24 24"
+      role={label ? "img" : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
+    >
+      <defs>
+        <linearGradient id={gradientId} x1="6" y1="3" x2="18" y2="22" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#ffe063" />
+          <stop offset="0.52" stopColor="#ffb52e" />
+          <stop offset="1" stopColor="#ed781d" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M14.35 1.05 4.8 13.1c-.55.7-.02 1.7.86 1.62l5.85-.54-1.75 8.72c-.2.97 1.08 1.48 1.58.63l7.85-13.34c.42-.72-.2-1.6-1.02-1.48l-5.18.76 2.82-7.49c.36-.94-.84-1.72-1.46-.93Z"
+        fill={`url(#${gradientId})`}
+        stroke="#d86d18"
+        strokeWidth="1.05"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M14.35 1.05 4.8 13.1c-.55.7-.02 1.7.86 1.62l5.85-.54c.63-.06 1.12.54.93 1.14l-2.68 7.57c-.2.97 1.08 1.48 1.58.63l1.85-9.08c.18-.87-.54-1.66-1.42-1.55l-5.42.69 9.46-11.6c.36-.94-.84-1.72-1.46-.93Z"
+        fill="#f39824"
+        opacity="0.82"
+      />
+    </svg>
+  );
+}
+
+function CompleteIcon() {
+  const gradientId = useId();
+
+  return (
+    <svg className="quick-action-check" viewBox="0 0 24 24" aria-hidden="true">
+      <defs>
+        <linearGradient id={gradientId} x1="5" y1="5" x2="18" y2="19" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#8ed59a" />
+          <stop offset="0.52" stopColor="#59ad70" />
+          <stop offset="1" stopColor="#398553" />
+        </linearGradient>
+      </defs>
+      <path
+        d="m3.6 12.15 4.65 4.75L20.5 4.8l-2.45-2.2-9.8 9.65-2.35-2.4-2.3 2.3Z"
+        fill={`url(#${gradientId})`}
+        stroke="#397c4d"
+        strokeWidth="1.05"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        transform="translate(-1.2 1.2) scale(1.1)"
+      />
+      <path
+        d="m3.6 12.15 4.65 4.75 1.65-1.63-4-4.08-2.3.96Z"
+        fill="#4d9861"
+        opacity="0.72"
+        transform="translate(-1.2 1.2) scale(1.1)"
+      />
+    </svg>
+  );
+}
+
+function EditIcon() {
+  const gradientId = useId();
+
+  return (
+    <svg className="quick-action-styled-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <defs>
+        <linearGradient id={gradientId} x1="7" y1="18" x2="18" y2="5" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#38576b" />
+          <stop offset="0.5" stopColor="#587b91" />
+          <stop offset="1" stopColor="#86a4b5" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M5.15 16.15 15.8 5.5c.72-.72 1.9-.72 2.62 0l.1.1c.72.72.72 1.9 0 2.62L7.87 18.87l-4.02 1.28 1.3-4Z"
+        fill={`url(#${gradientId})`}
+        stroke="#294759"
+        strokeWidth="1.05"
+        strokeLinejoin="round"
+      />
+      <path d="m5.15 16.15 2.72 2.72-4.02 1.28 1.3-4Z" fill="#d9bd84" stroke="#294759" strokeWidth="0.8" strokeLinejoin="round" />
+      <path d="m3.85 20.15.47-1.47.98.99-1.45.48Z" fill="#294759" />
+      <path d="m15.8 5.5 2.72 2.72-1.36 1.36-2.72-2.72 1.36-1.36Z" fill="#9bb5c3" opacity="0.8" />
+    </svg>
+  );
+}
+
+function DeleteIcon() {
+  const gradientId = useId();
+  const crossPath = "M5.4 5.4 18.6 18.6M18.6 5.4 5.4 18.6";
+
+  return (
+    <svg className="quick-action-styled-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <defs>
+        <linearGradient id={gradientId} x1="6" y1="5" x2="18" y2="19" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#f0796f" />
+          <stop offset="0.52" stopColor="#dc4f48" />
+          <stop offset="1" stopColor="#b93135" />
+        </linearGradient>
+      </defs>
+      <path d={crossPath} fill="none" stroke="#9f2f33" strokeWidth="5.2" strokeLinecap="round" />
+      <path d={crossPath} fill="none" stroke={`url(#${gradientId})`} strokeWidth="3.35" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function WelcomeHeartIcon() {
+  const gradientId = useId();
+
+  return (
+    <svg className="welcome-heart" viewBox="0 0 24 24" aria-hidden="true">
+      <defs>
+        <linearGradient id={gradientId} x1="7" y1="5" x2="17" y2="20" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#ffe7a0" />
+          <stop offset="0.52" stopColor="#ffd16c" />
+          <stop offset="1" stopColor="#e9aa3f" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M12 21.25C10.65 20.02 2.75 14.4 2.75 8.25 2.75 5.05 5.18 2.9 8.18 2.9c1.82 0 3.22.9 3.82 2.14.6-1.24 2-2.14 3.82-2.14 3 0 5.43 2.15 5.43 5.35 0 6.15-7.9 11.77-9.25 13Z"
+        fill={`url(#${gradientId})`}
+        stroke="#d99a34"
+        strokeWidth="1.05"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12 5.04C11.4 3.8 10 2.9 8.18 2.9c-3 0-5.43 2.15-5.43 5.35 0 6.15 7.9 11.77 9.25 13-2.28-3.32-6.12-7.66-6.12-12.34 0-2.16 1.43-3.7 3.34-3.7 1.08 0 2.04.42 2.78 1.08V5.04Z"
+        fill="#f3b94f"
+        opacity="0.58"
+      />
+    </svg>
+  );
+}
+
+function BulbIcon() {
+  const glassGradientId = useId();
+  const baseGradientId = useId();
+
+  return (
+    <svg className="drag-toast-bulb" viewBox="0 0 30 38" aria-hidden="true">
+      <defs>
+        <linearGradient id={glassGradientId} x1="8" y1="4" x2="22" y2="27" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#fff0a5" />
+          <stop offset="0.5" stopColor="#ffd263" />
+          <stop offset="1" stopColor="#f5a92f" />
+        </linearGradient>
+        <linearGradient id={baseGradientId} x1="9" y1="27" x2="20" y2="37" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#8ca2ad" />
+          <stop offset="0.5" stopColor="#607c8b" />
+          <stop offset="1" stopColor="#3e5d6d" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M15 1.6C7.65 1.6 2.25 7.08 2.25 14.05c0 4.36 2.24 7.23 5.2 9.9 1.16 1.04 1.72 2.08 1.78 3.35h11.54c.06-1.27.62-2.31 1.78-3.35 2.96-2.67 5.2-5.54 5.2-9.9C27.75 7.08 22.35 1.6 15 1.6Z"
+        fill={`url(#${glassGradientId})`}
+        stroke="#d99a34"
+        strokeWidth="1.1"
+        strokeLinejoin="round"
+      />
+      <ellipse cx="19.8" cy="8" rx="3.35" ry="4.05" fill="#fff4bb" opacity="0.82" />
+      <path d="m9.9 15.1 5.1 5.05 5.1-5.05M15 20.15v7.05" fill="none" stroke="#c98226" strokeWidth="3.1" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M8 27h14v7.15c0 1.5-1.2 2.7-2.7 2.7h-8.6A2.7 2.7 0 0 1 8 34.15V27Z"
+        fill={`url(#${baseGradientId})`}
+        stroke="#314c5c"
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
+      <path d="M8 30.25h14M8 33.45h14" fill="none" stroke="#365565" strokeWidth="1.15" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 function ScrollableTaskList({ children, layoutKey }: { children: React.ReactNode; layoutKey: string }) {
   const listRef = useRef<HTMLDivElement>(null);
@@ -270,8 +447,6 @@ export default function SevenPrototype() {
   const todayDayId = dayIdForDate(calendarDate);
   const allTasks = useMemo(() => Object.values(week).flat(), [week]);
   const completedCount = allTasks.filter((task) => task.completed).length;
-  const importantCount = allTasks.filter((task) => task.important && !task.completed).length;
-  const ordinaryCount = allTasks.filter((task) => !task.important && !task.completed).length;
   const progress = allTasks.length ? Math.round((completedCount / allTasks.length) * 100) : 0;
 
   const closeWelcome = () => {
@@ -432,22 +607,21 @@ export default function SevenPrototype() {
     >
       <div className="task-title-row">
         <p>{task.title}</p>
-        {task.important && !task.completed && <span className="importance-dot task-importance-dot" aria-label="Важная задача" />}
-        {task.completed && <span className="task-check" aria-label="Выполнено">✓</span>}
+        {task.important && !task.completed && <ImportantIcon className="task-importance-dot" label="Важная задача" />}
       </div>
       {!task.completed && (
         <div className="task-reveal">
           {task.description && <p className="task-description">{task.description}</p>}
           <div className="task-actions">
             <button type="button" data-tip="Отметить выполненной" aria-label="Отметить выполненной" onClick={() => updateTask(day, task.id, (item) => ({ ...item, completed: true }))}>
-              <svg className="quick-action-icon quick-action-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.5 9.3 18 20 6" /></svg>
+              <CompleteIcon />
             </button>
             <button type="button" data-tip={task.important ? "Убрать важность" : "Отметить важной"} aria-label={task.important ? "Убрать важность" : "Отметить важной"} onClick={() => updateTask(day, task.id, (item) => ({ ...item, important: !item.important }))}>
-              <svg className="quick-action-icon quick-action-star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M2 12h20M4.9 4.9l14.2 14.2M19.1 4.9 4.9 19.1" /></svg>
+              <ImportantIcon className="task-importance-dot" />
             </button>
-            <button type="button" data-tip="Редактировать" aria-label="Редактировать" onClick={() => openEditor(day, task)}><span className="edit-icon" aria-hidden="true" /></button>
+            <button type="button" data-tip="Редактировать" aria-label="Редактировать" onClick={() => openEditor(day, task)}><EditIcon /></button>
             <button type="button" data-tip="Удалить" aria-label="Удалить" onClick={() => setDeleteTarget({ day, task })}>
-              <svg className="quick-action-icon quick-action-delete" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4 19 20M19 4 5 20" /></svg>
+              <DeleteIcon />
             </button>
           </div>
         </div>
@@ -485,7 +659,7 @@ export default function SevenPrototype() {
     <main className="seven-shell" style={{ backgroundImage: `url("${backgroundUrl}")` }}>
       <div className="mobile-message">
         <div className="mobile-message-card">
-          <div className="brand-logo">Seven</div>
+          <div className="brand-logo">Seven<span className="brand-dot">.</span></div>
           <h1>Лучше открыть на компьютере</h1>
           <p>Seven создан для планирования недели на большом экране. Версия для смартфона появится в будущем.</p>
         </div>
@@ -494,53 +668,49 @@ export default function SevenPrototype() {
       <div className="desktop-planner">
         <header className="topbar">
           <div className="metrics">
-            <div className="progress-wrap">
-              <div className="progress-ring">
-                <svg className="progress-ring-svg" viewBox="0 0 68 68" aria-hidden="true">
-                  <circle className="progress-ring-track" cx="34" cy="34" r="31" pathLength="100" />
-                  <circle className="progress-ring-value" cx="34" cy="34" r="31" pathLength="100" strokeDasharray={`${progress} 100`} />
-                </svg>
-                <span>{progress}%</span>
-              </div>
-              <div><strong>Прогресс недели</strong><small>{weekId === "current" ? "Текущая неделя" : "Следующая неделя"}</small></div>
+            <div
+              className="progress-bar"
+              role="progressbar"
+              aria-label="Прогресс недели"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progress}
+            >
+              <span className="progress-bar-value" style={{ width: `${progress}%` }} />
             </div>
-            <div className="metric"><strong>{completedCount} <span>/ {allTasks.length}</span></strong><small>Выполнено</small></div>
-            <div className="metric metric-important"><strong>{importantCount}</strong><small>Важные</small></div>
-            <div className="metric metric-ordinary"><strong>{ordinaryCount}</strong><small>Обычные</small></div>
+            <div className="completion-summary"><strong>{completedCount}/{allTasks.length}</strong><span>выполнено</span></div>
           </div>
-          <div className="brand-area">
-            <div className="brand-logo">Seven</div>
-            <div className="brand-controls">
-              <div className="background-settings" ref={backgroundSettingsRef}>
-                <button
-                  className={`settings-trigger ${backgroundMenuOpen ? "active" : ""}`}
-                  type="button"
-                  aria-label="Настройки фона"
-                  aria-expanded={backgroundMenuOpen}
-                  onClick={() => { setBackgroundError(""); setBackgroundMenuOpen((open) => !open); }}
-                >
-                  <span className="settings-gear" aria-hidden="true" />
-                </button>
-                {backgroundMenuOpen && (
-                  <div className="background-menu" role="menu" aria-label="Настройки фона">
-                    <button type="button" role="menuitem" onClick={cycleBuiltInBackground}>Обновить фон</button>
-                    <button type="button" role="menuitem" onClick={() => backgroundFileRef.current?.click()}>Загрузить свой фон</button>
-                    {backgroundError && <p role="alert">{backgroundError}</p>}
-                  </div>
-                )}
-                <input ref={backgroundFileRef} className="background-file-input" type="file" accept="image/*" onChange={uploadCustomBackground} />
-              </div>
-              <nav className="week-switch" aria-label="Выбор недели">
-                <button className={weekId === "current" ? "active" : ""} type="button" onClick={() => setWeekId("current")} onDragEnter={() => hoverWeek("current")} onDragLeave={cancelWeekHover}>Эта неделя</button>
-                <button className={weekId === "next" ? "active" : ""} type="button" onClick={() => setWeekId("next")} onDragEnter={() => hoverWeek("next")} onDragLeave={cancelWeekHover}>Следующая неделя</button>
-              </nav>
+          <div className="brand-logo topbar-logo">Seven<span className="brand-dot">.</span></div>
+          <div className="brand-controls">
+            <div className="background-settings" ref={backgroundSettingsRef}>
+              <button
+                className={`settings-trigger ${backgroundMenuOpen ? "active" : ""}`}
+                type="button"
+                aria-label="Настройки фона"
+                aria-expanded={backgroundMenuOpen}
+                onClick={() => { setBackgroundError(""); setBackgroundMenuOpen((open) => !open); }}
+              >
+                <span className="settings-gear" aria-hidden="true" />
+              </button>
+              {backgroundMenuOpen && (
+                <div className="background-menu" role="menu" aria-label="Настройки фона">
+                  <button type="button" role="menuitem" onClick={cycleBuiltInBackground}>Обновить фон</button>
+                  <button type="button" role="menuitem" onClick={() => backgroundFileRef.current?.click()}>Загрузить свой фон</button>
+                  {backgroundError && <p role="alert">{backgroundError}</p>}
+                </div>
+              )}
+              <input ref={backgroundFileRef} className="background-file-input" type="file" accept="image/*" onChange={uploadCustomBackground} />
             </div>
+            <nav className="week-switch" aria-label="Выбор недели">
+              <button className={weekId === "current" ? "active" : ""} type="button" onClick={() => setWeekId("current")} onDragEnter={() => hoverWeek("current")} onDragLeave={cancelWeekHover}>Эта неделя</button>
+              <button className={weekId === "next" ? "active" : ""} type="button" onClick={() => setWeekId("next")} onDragEnter={() => hoverWeek("next")} onDragLeave={cancelWeekHover}>Следующая неделя</button>
+            </nav>
           </div>
         </header>
 
         <section className="week-grid" aria-label="Задачи на неделю">
           {displayDays.slice(0, 5).map((day) => renderDay(day))}
-          <div className="weekend-panel">
+          <div className={`weekend-panel ${weekId === "current" && (todayDayId === "sat" || todayDayId === "sun") ? "today" : ""}`}>
             {renderDay(displayDays[5], true)}
             {renderDay(displayDays[6], true)}
           </div>
@@ -553,12 +723,8 @@ export default function SevenPrototype() {
 
       {dragToast && (
         <aside className="drag-toast" role="status" aria-live="polite">
-          <span className="drag-toast-bulb" aria-hidden="true">
-            <i className="bulb-glass" />
-            <i className="bulb-filament" />
-            <i className="bulb-base" />
-          </span>
-          <span>Задачи можно перетаскивать на другие дни</span>
+          <BulbIcon />
+          <span className="drag-toast-copy">Задачи можно перетаскивать на другие дни</span>
           <button type="button" aria-label="Закрыть подсказку" onClick={dismissDragToast}>×</button>
         </aside>
       )}
@@ -567,11 +733,11 @@ export default function SevenPrototype() {
         <div className="modal-layer">
           <section className="modal-card welcome-card" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
             <button className="modal-close" type="button" aria-label="Закрыть" onClick={closeWelcome}>×</button>
-            <h2 id="welcome-title" className="welcome-heading"><span className="brand-logo welcome-logo">Seven</span></h2>
+            <h2 id="welcome-title" className="welcome-heading"><span className="brand-logo welcome-logo">Seven<span className="brand-dot">.</span></span></h2>
             <span className="modal-kicker">Добро пожаловать</span>
             <p>Это первая версия приложения, и она продолжает развиваться.</p>
             <p className="welcome-storage-note">Пока что все задачи сохраняются только в этом браузере<br />и только на этом устройстве</p>
-            <p className="welcome-feedback">Понравился планер или есть идеи?<span>Напиши разработчику — она будет очень рада <span className="welcome-heart" aria-hidden="true" /></span></p>
+            <p className="welcome-feedback">Понравился планер или есть идеи?<span>Напиши разработчику — она будет очень рада <WelcomeHeartIcon /></span></p>
             <label className="welcome-check"><input type="checkbox" checked={neverWelcome} onChange={(event) => setNeverWelcome(event.target.checked)} /> Больше не показывать</label>
             <div className="modal-actions">
               <a className="button secondary-button" href="https://t.me/annakenga" target="_blank" rel="noreferrer">Написать в Telegram</a>
@@ -592,7 +758,7 @@ export default function SevenPrototype() {
               <legend>Приоритет</legend>
               <div className="priority-options">
                 <button className={!important ? "selected" : ""} type="button" onClick={() => setImportant(false)}>Обычная</button>
-                <button className={`important-choice ${important ? "selected" : ""}`} type="button" onClick={() => setImportant(true)}><span className="importance-dot" aria-hidden="true" /><span>Важная</span></button>
+                <button className={`important-choice ${important ? "selected" : ""}`} type="button" onClick={() => setImportant(true)}><ImportantIcon /><span>Важная</span></button>
               </div>
             </fieldset>
             <div className="modal-actions">
