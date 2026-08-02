@@ -17,6 +17,9 @@ type Task = {
 type Week = Record<DayId, Task[]>;
 type DayMeta = { id: DayId; short: string; full: string };
 type CalendarDay = DayMeta & { date: string };
+type FeedbackStatus = "idle" | "sending" | "success" | "error";
+
+const feedbackEndpoint = "https://functions.yandexcloud.net/d4e8f0eiq0gipgc3agkp";
 
 const dayMeta: DayMeta[] = [
   { id: "mon", short: "Пн", full: "Понедельник" },
@@ -224,34 +227,6 @@ function DeleteIcon() {
   );
 }
 
-function WelcomeHeartIcon() {
-  const gradientId = useId();
-
-  return (
-    <svg className="welcome-heart" viewBox="0 0 24 24" aria-hidden="true">
-      <defs>
-        <linearGradient id={gradientId} x1="7" y1="5" x2="17" y2="20" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#ffe7a0" />
-          <stop offset="0.52" stopColor="#ffd16c" />
-          <stop offset="1" stopColor="#e9aa3f" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M12 21.25C10.65 20.02 2.75 14.4 2.75 8.25 2.75 5.05 5.18 2.9 8.18 2.9c1.82 0 3.22.9 3.82 2.14.6-1.24 2-2.14 3.82-2.14 3 0 5.43 2.15 5.43 5.35 0 6.15-7.9 11.77-9.25 13Z"
-        fill={`url(#${gradientId})`}
-        stroke="#d99a34"
-        strokeWidth="1.05"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M12 5.04C11.4 3.8 10 2.9 8.18 2.9c-3 0-5.43 2.15-5.43 5.35 0 6.15 7.9 11.77 9.25 13-2.28-3.32-6.12-7.66-6.12-12.34 0-2.16 1.43-3.7 3.34-3.7 1.08 0 2.04.42 2.78 1.08V5.04Z"
-        fill="#f3b94f"
-        opacity="0.58"
-      />
-    </svg>
-  );
-}
-
 function BulbIcon() {
   const glassGradientId = useId();
   const baseGradientId = useId();
@@ -287,6 +262,21 @@ function BulbIcon() {
         strokeLinejoin="round"
       />
       <path d="M8 30.25h14M8 33.45h14" fill="none" stroke="#365565" strokeWidth="1.15" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SendIcon() {
+  return (
+    <svg className="developer-contact-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <defs>
+        <mask id="seven-send-shape">
+          <rect width="24" height="24" fill="black" />
+          <path d="M2.75 10.95 20.1 3.25c1.02-.45 2.1.42 1.88 1.51l-3.16 15.57c-.2.98-1.34 1.41-2.14.82l-6.1-4.5-3 2.7c-.58.52-1.51.11-1.51-.67v-3.73l-1.56-.73c-.84-.39-1.7-.96-2.28-1.68-.35-.44-.42-1.03-.16-1.52.14-.27.38-.48.68-.61Z" fill="white" />
+          <path d="m7.95 14.45 8.98-7.19c.46-.37 1.04.23.67.69l-6.97 8.62-2.68-2.12Z" fill="black" />
+        </mask>
+      </defs>
+      <rect width="24" height="24" fill="currentColor" mask="url(#seven-send-shape)" />
     </svg>
   );
 }
@@ -371,6 +361,11 @@ export default function SevenPrototype() {
   const [backgroundTheme, setBackgroundTheme] = useState<BackgroundTheme>("lake");
   const [customBackground, setCustomBackground] = useState<string | null>(null);
   const [backgroundMenuOpen, setBackgroundMenuOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackName, setFeedbackName] = useState("");
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackStatus, setFeedbackStatus] = useState<FeedbackStatus>("idle");
+  const [feedbackStatusText, setFeedbackStatusText] = useState("");
   const [backgroundError, setBackgroundError] = useState("");
   const [welcome, setWelcome] = useState(false);
   const [initialized, setInitialized] = useState(false);
@@ -386,6 +381,53 @@ export default function SevenPrototype() {
   const dragToastTimer = useRef<number | null>(null);
   const backgroundFileRef = useRef<HTMLInputElement>(null);
   const backgroundSettingsRef = useRef<HTMLDivElement>(null);
+
+  const openFeedback = () => {
+    setFeedbackStatus("idle");
+    setFeedbackStatusText("");
+    setFeedbackOpen(true);
+  };
+
+  const closeFeedback = () => {
+    if (feedbackStatus === "sending") return;
+    setFeedbackStatus("idle");
+    setFeedbackStatusText("");
+    setFeedbackOpen(false);
+  };
+
+  const sendFeedback = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const message = feedbackText.trim();
+    if (!message || feedbackStatus === "sending") return;
+
+    setFeedbackStatus("sending");
+    setFeedbackStatusText("Отправляем обращение…");
+
+    try {
+      const response = await fetch(feedbackEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: feedbackName.trim(),
+          message,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || "Не удалось отправить обращение");
+      }
+
+      setFeedbackName("");
+      setFeedbackText("");
+      setFeedbackStatus("success");
+      setFeedbackStatusText("Спасибо! Обращение отправлено разработчику.");
+    } catch {
+      setFeedbackStatus("error");
+      setFeedbackStatusText("Не удалось отправить. Проверь интернет и попробуй ещё раз.");
+    }
+  };
 
   useEffect(() => {
     const updateCalendarDate = () => setCalendarDate(new Date());
@@ -714,6 +756,15 @@ export default function SevenPrototype() {
               )}
               <input ref={backgroundFileRef} className="background-file-input" type="file" accept="image/*" onChange={uploadCustomBackground} />
             </div>
+            <button
+              className="developer-contact"
+              type="button"
+              aria-label="Написать разработчику"
+              data-tip="Написать разработчику"
+              onClick={openFeedback}
+            >
+              <SendIcon />
+            </button>
             <nav className="week-switch" aria-label="Выбор недели">
               <button className={weekId === "current" ? "active" : ""} type="button" onClick={() => setWeekId("current")} onDragEnter={() => hoverWeek("current")} onDragLeave={cancelWeekHover}>Эта неделя</button>
               <button className={weekId === "next" ? "active" : ""} type="button" onClick={() => setWeekId("next")} onDragEnter={() => hoverWeek("next")} onDragLeave={cancelWeekHover}>Следующая неделя</button>
@@ -749,14 +800,64 @@ export default function SevenPrototype() {
             <h2 id="welcome-title" className="welcome-heading"><span className="brand-logo welcome-logo">Seven<span className="brand-dot">.</span></span></h2>
             <span className="modal-kicker">Добро пожаловать</span>
             <p>Это первая версия приложения, и она продолжает развиваться.</p>
-            <p className="welcome-storage-note">Пока что все задачи сохраняются только в этом браузере<br />и только на этом устройстве</p>
-            <p className="welcome-feedback">Понравился планер или есть идеи?<span>Напиши разработчику — она будет очень рада <WelcomeHeartIcon /></span></p>
+            <p className="welcome-storage-note"><strong>Обрати внимание:</strong><span>Пока что все задачи сохраняются только в этом браузере<br />и только на этом устройстве</span></p>
             <label className="welcome-check"><input type="checkbox" checked={neverWelcome} onChange={(event) => setNeverWelcome(event.target.checked)} /> Больше не показывать</label>
             <div className="modal-actions">
-              <a className="button secondary-button" href="https://t.me/annakenga" target="_blank" rel="noreferrer">Написать в Telegram</a>
-              <button className="button primary-button" type="button" onClick={closeWelcome}>Продолжить</button>
+              <button className="button primary-button" type="button" onClick={closeWelcome}>Понял, принял</button>
             </div>
           </section>
+        </div>
+      )}
+
+      {feedbackOpen && (
+        <div className="modal-layer">
+          {feedbackStatus === "success" ? (
+            <section className="modal-card feedback-success-card" role="dialog" aria-modal="true" aria-labelledby="feedback-success-title">
+              <p id="feedback-success-title">Спасибо! Обращение было отправлено разработчику ;)</p>
+              <button className="button primary-button" type="button" autoFocus onClick={closeFeedback}>Закрыть</button>
+            </section>
+          ) : (
+            <form className="modal-card feedback-card" onSubmit={sendFeedback} role="dialog" aria-modal="true" aria-labelledby="feedback-title">
+              <span className="modal-kicker">Обратная связь</span>
+              <h2 id="feedback-title">Написать разработчику</h2>
+              <label>
+                Имя
+                <input
+                  autoFocus
+                  value={feedbackName}
+                  onChange={(event) => {
+                    setFeedbackName(event.target.value);
+                    if (feedbackStatus !== "sending") setFeedbackStatus("idle");
+                  }}
+                  placeholder="Необязательно, от анонимов тоже принимаю обратную связь :)"
+                  disabled={feedbackStatus === "sending"}
+                />
+              </label>
+              <label>
+                Сообщение
+                <textarea
+                  value={feedbackText}
+                  onChange={(event) => {
+                    setFeedbackText(event.target.value);
+                    if (feedbackStatus !== "sending") setFeedbackStatus("idle");
+                  }}
+                  placeholder="Расскажи об идее, пожелании или проблеме"
+                  disabled={feedbackStatus === "sending"}
+                />
+              </label>
+              {feedbackStatus !== "idle" && (
+                <p className={`feedback-status ${feedbackStatus}`} role="status" aria-live="polite">
+                  {feedbackStatusText}
+                </p>
+              )}
+              <div className="modal-actions">
+                <button className="button primary-button" type="submit" disabled={!feedbackText.trim() || feedbackStatus === "sending"}>
+                  {feedbackStatus === "sending" ? "Отправляем…" : "Отправить"}
+                </button>
+                <button className="button secondary-button" type="button" disabled={feedbackStatus === "sending"} onClick={closeFeedback}>Отменить</button>
+              </div>
+            </form>
+          )}
         </div>
       )}
 

@@ -284,6 +284,44 @@ button, a { -webkit-tap-highlight-color: transparent; }
   pointer-events: none;
 }
 
+.developer-contact {
+  position: relative;
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 50%;
+  background: rgba(7,21,32,.30);
+  color: #cbd3d8;
+  cursor: pointer;
+  backdrop-filter: blur(16px);
+  transition: background .2s ease, border-color .2s ease, transform .2s ease;
+}
+.developer-contact:hover { background: rgba(7,21,32,.48); border-color: rgba(255,255,255,.24); transform: translateY(-1px); }
+.developer-contact-icon { display: block; width: 27px; height: 27px; transition: transform .2s ease; }
+.developer-contact:hover .developer-contact-icon { transform: translate(1px, -1px); }
+.developer-contact[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  right: 0;
+  top: calc(100% + 9px);
+  width: max-content;
+  padding: 7px 9px;
+  border-radius: 7px;
+  background: #061421;
+  color: white;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(3px);
+  transition: opacity .15s ease, transform .15s ease;
+}
+.developer-contact[data-tip]:hover::after { opacity: 1; transform: translateY(0); }
+
 .footer-divider { margin-inline: 12px; }
 
 .drag-toast {
@@ -654,15 +692,16 @@ button, a { -webkit-tap-highlight-color: transparent; }
   color: rgba(243,247,249,.86) !important;
   font-weight: 600;
 }
-.welcome-feedback > span { display: block; margin-top: 3px; }
-.welcome-heart {
-  display: inline-block;
-  width: 21px;
-  height: 21px;
-  margin-left: 4px;
-  vertical-align: -5px;
-  overflow: visible;
+.welcome-storage-note strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--orange-light);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .11em;
+  text-transform: uppercase;
 }
+.welcome-storage-note > span { display: block; }
 .welcome-check { display: flex; align-items: center; gap: 10px; margin-top: 19px; color: rgba(255,255,255,.78); font-size: 14px; cursor: pointer; }
 .welcome-check input { width: 18px; height: 18px; }
 .welcome-check input { accent-color: var(--orange); }
@@ -711,6 +750,45 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .priority-options button.important-choice.selected .importance-dot { opacity: 1; filter: none; }
 
 .delete-card { width: min(410px, 100%); }
+
+.feedback-card {
+  width: min(520px, 100%);
+  background: linear-gradient(180deg, rgba(6,29,54,.98), rgba(2,16,34,.99));
+}
+.feedback-card label { display: block; margin-top: 16px; color: rgba(255,255,255,.80); font-size: 14px; }
+.feedback-card input,
+.feedback-card textarea {
+  width: 100%;
+  margin-top: 7px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 11px;
+  outline: none;
+  background: rgba(255,255,255,.055);
+  color: white;
+  font-size: 14px;
+  line-height: 1.5;
+  transition: border-color .18s ease, background .18s ease;
+}
+.feedback-card textarea { min-height: 170px; max-height: 50vh; resize: vertical; }
+.feedback-card input:focus,
+.feedback-card textarea:focus { border-color: rgba(255,107,61,.72); background: rgba(255,255,255,.075); }
+.feedback-card input::placeholder,
+.feedback-card textarea::placeholder { color: rgba(255,255,255,.18); }
+.feedback-card input:disabled,
+.feedback-card textarea:disabled { opacity: .64; cursor: wait; }
+.feedback-status { margin: 14px 0 0; font-size: 13px; line-height: 1.45; }
+.feedback-status.sending { color: rgba(255,255,255,.58); }
+.feedback-status.success { color: rgba(132,190,148,.94); }
+.feedback-status.error { color: rgba(255,146,126,.96); }
+.feedback-card .modal-actions { justify-content: flex-start; margin-top: 24px; }
+.feedback-success-card {
+  width: min(430px, 100%);
+  padding: 30px;
+  background: linear-gradient(180deg, rgba(6,29,54,.98), rgba(2,16,34,.99));
+}
+.feedback-success-card p { margin: 0; color: rgba(255,255,255,.86); font-size: 17px; line-height: 1.55; }
+.feedback-success-card .button { margin-top: 22px; }
 
 @keyframes modal-fade { from { opacity: 0; } }
 @keyframes modal-rise { from { opacity: 0; transform: translateY(8px) scale(.98); } }
