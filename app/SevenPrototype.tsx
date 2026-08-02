@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
+import { initializeAnalytics, trackGoal } from "./analytics";
 
 type DayId = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 type WeekId = "current" | "next";
@@ -433,6 +434,7 @@ export default function SevenPrototype() {
       setFeedbackText("");
       setFeedbackStatus("success");
       setFeedbackStatusText("Спасибо! Обращение отправлено разработчику.");
+      trackGoal("feedback_sent");
     } catch {
       setFeedbackStatus("error");
       setFeedbackStatusText("Не удалось отправить. Проверь интернет и попробуй ещё раз.");
@@ -440,6 +442,8 @@ export default function SevenPrototype() {
   };
 
   useEffect(() => {
+    initializeAnalytics();
+
     const updateCalendarDate = () => setCalendarDate(new Date());
     updateCalendarDate();
     const calendarTimer = window.setInterval(updateCalendarDate, 60_000);
@@ -526,6 +530,7 @@ export default function SevenPrototype() {
   const saveTask = (event: FormEvent) => {
     event.preventDefault();
     if (!editor || !title.trim()) return;
+    const isNewTask = !editor.task;
     setWeeks((current) => {
       const copy = { ...current, [weekId]: { ...current[weekId] } };
       const tasks = [...copy[weekId][editor.day]];
@@ -538,6 +543,7 @@ export default function SevenPrototype() {
       copy[weekId][editor.day] = tasks;
       return copy;
     });
+    if (isNewTask) trackGoal("task_created");
     setEditor(null);
   };
 
@@ -831,6 +837,7 @@ export default function SevenPrototype() {
             <span className="modal-kicker">Добро пожаловать</span>
             <p>Это первая версия приложения, и она продолжает развиваться.</p>
             <p className="welcome-storage-note"><strong>Обрати внимание:</strong><span>Пока что все задачи сохраняются только в этом браузере<br />и только на этом устройстве</span></p>
+            <p className="welcome-analytics-note">Для улучшения Seven используется Яндекс Метрика. Она считает посещения и действия без передачи текстов задач и обращений.</p>
             <label className="welcome-check"><input type="checkbox" checked={neverWelcome} onChange={(event) => setNeverWelcome(event.target.checked)} /> Больше не показывать</label>
             <div className="modal-actions">
               <button className="button primary-button" type="button" onClick={closeWelcome}>Понял, принял</button>
