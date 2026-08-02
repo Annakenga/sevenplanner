@@ -281,6 +281,15 @@ function SendIcon() {
   );
 }
 
+function BroomIcon() {
+  return (
+    <svg className="clear-week-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M14.1 9.55 16.86 3a1.72 1.72 0 0 1 3.17 1.33l-2.2 5.22h.48c.9 0 1.71.51 2.11 1.32l.74 1.5H5.62l1.25-1.72a2.66 2.66 0 0 1 2.15-1.1h5.08Z" fill="currentColor" />
+      <path d="M6.06 13.3h14.52l.95 7.05h-3.7l-.42-1.74-.41 1.74H8.55l-.42-1.74-.42 1.74H3.94c.38-2.5 1.08-4.85 2.12-7.05Z" fill="currentColor" />
+    </svg>
+  );
+}
+
 function ScrollableTaskList({ children, layoutKey }: { children: React.ReactNode; layoutKey: string }) {
   const listRef = useRef<HTMLDivElement>(null);
   const [scrollbar, setScrollbar] = useState({ visible: false, height: 0, top: 0 });
@@ -373,6 +382,7 @@ export default function SevenPrototype() {
   const [neverWelcome, setNeverWelcome] = useState(false);
   const [editor, setEditor] = useState<{ day: DayId; task?: Task } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ day: DayId; task: Task } | null>(null);
+  const [clearWeekOpen, setClearWeekOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [important, setImportant] = useState(false);
@@ -553,6 +563,15 @@ export default function SevenPrototype() {
     setDeleteTarget(null);
   };
 
+  const confirmClearWeek = () => {
+    setWeeks((current) => {
+      const clearedWeeks = { ...current, [weekId]: emptyWeek() };
+      window.localStorage.setItem(taskStorageKey, JSON.stringify(clearedWeeks));
+      return clearedWeeks;
+    });
+    setClearWeekOpen(false);
+  };
+
   const dropOnDay = (targetDay: DayId) => {
     if (!dragged) return;
     const task = weeks[dragged.week][dragged.day].find((item) => item.id === dragged.taskId);
@@ -659,7 +678,7 @@ export default function SevenPrototype() {
     >
       <div className="task-title-row">
         <div className="task-title-main">
-          <span className="task-number" aria-hidden="true">{String(taskNumber).padStart(2, "0")}</span>
+          <span className="task-number" aria-hidden="true">{String(taskNumber).padStart(2, "0")}.</span>
           <p>{task.title}</p>
         </div>
         {task.important && !task.completed && <ImportantIcon className="task-importance-dot" label="Важная задача" />}
@@ -722,18 +741,29 @@ export default function SevenPrototype() {
 
       <div className="desktop-planner">
         <header className="topbar">
-          <div className="metrics">
-            <div
-              className="progress-bar"
-              role="progressbar"
-              aria-label="Прогресс недели"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={progress}
-            >
-              <span className="progress-bar-value" style={{ width: `${progress}%` }} />
+          <div className="metrics-group">
+            <div className="metrics">
+              <div
+                className="progress-bar"
+                role="progressbar"
+                aria-label="Прогресс недели"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={progress}
+              >
+                <span className="progress-bar-value" style={{ width: `${progress}%` }} />
+              </div>
+              <div className="completion-summary"><strong>{completedCount}/{allTasks.length}</strong><span>выполнено</span></div>
             </div>
-            <div className="completion-summary"><strong>{completedCount}/{allTasks.length}</strong><span>выполнено</span></div>
+            <button
+              className="clear-week-button"
+              type="button"
+              aria-label="Очистить задачи на этой неделе"
+              data-tip="Очистить неделю"
+              onClick={() => setClearWeekOpen(true)}
+            >
+              <BroomIcon />
+            </button>
           </div>
           <div className="brand-logo topbar-logo">Seven<span className="brand-dot">.</span></div>
           <div className="brand-controls">
@@ -892,6 +922,23 @@ export default function SevenPrototype() {
             <div className="modal-actions">
               <button className="button secondary-button" type="button" onClick={() => setDeleteTarget(null)}>Отменить</button>
               <button className="button danger-button" type="button" onClick={confirmDelete}>Удалить</button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {clearWeekOpen && (
+        <div className="modal-layer">
+          <section className="modal-card clear-week-card" role="dialog" aria-modal="true" aria-labelledby="clear-week-title">
+            <span className="modal-kicker danger-kicker">Очистка недели</span>
+            <h2 id="clear-week-title">Очистить все задачи?</h2>
+            <p className="clear-week-copy">
+              <span>Хочешь очистить текущую неделю</span>
+              <span>и начать с чистого листа?)</span>
+            </p>
+            <div className="modal-actions">
+              <button className="button danger-button" type="button" onClick={confirmClearWeek}>Да</button>
+              <button className="button secondary-button" type="button" autoFocus onClick={() => setClearWeekOpen(false)}>Не хочу</button>
             </div>
           </section>
         </div>
