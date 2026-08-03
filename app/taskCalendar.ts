@@ -53,9 +53,9 @@ export function migrateLegacyWeeks<T>(value: string | null, date: Date): TaskCal
     if (!parsed || typeof parsed !== "object") return null;
 
     const calendar: TaskCalendar<T> = {};
-    // In the old version the buckets never rolled over. At the first migration
-    // the old "next" bucket is therefore the newly started current week.
-    const legacyOffsets = { current: -1, next: 0 } as const;
+    // Preserve exactly what the user saw before the storage upgrade. From this
+    // point on the tasks are attached to these dates and tabs become views only.
+    const legacyOffsets = { current: 0, next: 1 } as const;
 
     for (const legacyWeekId of ["current", "next"] as const) {
       const dates = dateKeysForWeek(date, legacyOffsets[legacyWeekId]);

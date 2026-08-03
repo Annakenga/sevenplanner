@@ -11,8 +11,8 @@ test("the same calendar week changes from next to current after Monday starts", 
   assert.equal(dateKeysForWeek(monday, 0)[0], "2026-08-03");
 });
 
-test("legacy next-week tasks migrate to their real dates in the new current week", () => {
-  const task = { id: 1, title: "Задача на 3 августа" };
+test("storage upgrade preserves the dates visible in the legacy tabs", () => {
+  const task = { id: 1, title: "Задача на 10 августа" };
   const emptyWeek = { mon: [], tue: [], wed: [], thu: [], fri: [], sat: [], sun: [] };
   const legacyWeeks = {
     current: { ...emptyWeek },
@@ -21,6 +21,6 @@ test("legacy next-week tasks migrate to their real dates in the new current week
 
   const migrated = migrateLegacyWeeks(JSON.stringify(legacyWeeks), new Date(2026, 7, 3, 12));
 
-  assert.deepEqual(migrated?.["2026-08-03"], [task]);
-  assert.equal(migrated?.["2026-08-10"], undefined);
+  assert.deepEqual(migrated?.["2026-08-10"], [task]);
+  assert.equal(migrated?.["2026-08-03"], undefined);
 });

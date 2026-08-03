@@ -63,7 +63,8 @@ function daysForWeek(date: Date, weekId: WeekId): CalendarDay[] {
 }
 
 const legacyTaskStorageKey = "seven-weeks-v1";
-const taskStorageKey = "seven-tasks-by-date-v2";
+const previousTaskStorageKey = "seven-tasks-by-date-v2";
+const taskStorageKey = "seven-tasks-by-date-v3";
 
 function sortTasks(tasks: Task[]) {
   return [...tasks].sort((a, b) => {
@@ -425,14 +426,18 @@ export default function SevenPrototype() {
 
     const welcomeDismissed = window.localStorage.getItem("seven-welcome-dismissed") === "yes";
     const savedCalendar = storedTaskCalendar<Task>(window.localStorage.getItem(taskStorageKey));
-    const migratedCalendar = savedCalendar
+    const legacyCalendar = savedCalendar
       ? null
       : migrateLegacyWeeks<Task>(window.localStorage.getItem(legacyTaskStorageKey), new Date());
+    const previousCalendar = savedCalendar || legacyCalendar
+      ? null
+      : storedTaskCalendar<Task>(window.localStorage.getItem(previousTaskStorageKey));
     const savedBackgroundTheme = window.localStorage.getItem("seven-background-theme");
     const savedCustomBackground = window.localStorage.getItem("seven-custom-background");
     const initTimer = window.setTimeout(() => {
       if (savedCalendar) setTasksByDate(savedCalendar);
-      else if (migratedCalendar) setTasksByDate(migratedCalendar);
+      else if (legacyCalendar) setTasksByDate(legacyCalendar);
+      else if (previousCalendar) setTasksByDate(previousCalendar);
       if (savedCustomBackground) setCustomBackground(savedCustomBackground);
       if (savedBackgroundTheme === "custom" && savedCustomBackground) {
         setBackgroundTheme("custom");
