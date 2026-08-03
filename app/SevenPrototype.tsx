@@ -2,6 +2,13 @@
 
 import { FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { initializeAnalytics, trackGoal } from "./analytics";
+import {
+  localDateKey,
+  migrateLegacyWeeks,
+  startOfLocalWeek,
+  storedTaskCalendar,
+  type TaskCalendar,
+} from "./taskCalendar";
 
 type DayId = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 type WeekId = "current" | "next";
@@ -15,9 +22,8 @@ type Task = {
   completed: boolean;
 };
 
-type Week = Record<DayId, Task[]>;
 type DayMeta = { id: DayId; short: string; full: string };
-type CalendarDay = DayMeta & { date: string };
+type CalendarDay = DayMeta & { date: string; dateKey: string };
 type FeedbackStatus = "idle" | "sending" | "success" | "error";
 
 const feedbackEndpoint = "https://functions.yandexcloud.net/d4e8f0eiq0gipgc3agkp";
@@ -38,10 +44,7 @@ const monthNames = [
 ];
 
 function startOfWeek(date: Date) {
-  const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const daysSinceMonday = (monday.getDay() + 6) % 7;
-  monday.setDate(monday.getDate() - daysSinceMonday);
-  return monday;
+  return startOfLocalWeek(date);
 }
 
 function dateLabel(date: Date) {
@@ -55,40 +58,12 @@ function daysForWeek(date: Date, weekId: WeekId): CalendarDay[] {
   return dayMeta.map((day, index) => {
     const dayDate = new Date(monday);
     dayDate.setDate(monday.getDate() + index);
-    return { ...day, date: dateLabel(dayDate) };
+    return { ...day, date: dateLabel(dayDate), dateKey: localDateKey(dayDate) };
   });
 }
 
-const emptyWeek = (): Week => ({
-  mon: [],
-  tue: [],
-  wed: [],
-  thu: [],
-  fri: [],
-  sat: [],
-  sun: [],
-});
-
-const emptyWeeks = (): Record<WeekId, Week> => ({ current: emptyWeek(), next: emptyWeek() });
-const taskStorageKey = "seven-weeks-v1";
-
-function storedWeeks(value: string | null): Record<WeekId, Week> | null {
-  if (!value) return null;
-  try {
-    const parsed = JSON.parse(value) as Partial<Record<WeekId, Partial<Week>>>;
-    const restored = emptyWeeks();
-    const dayIds: DayId[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
-    for (const weekId of ["current", "next"] as WeekId[]) {
-      for (const dayId of dayIds) {
-        const tasks = parsed[weekId]?.[dayId];
-        if (Array.isArray(tasks)) restored[weekId][dayId] = tasks;
-      }
-    }
-    return restored;
-  } catch {
-    return null;
-  }
-}
+const legacyTaskStorageKey = "seven-weeks-v1";
+const taskStorageKey = "seven-tasks-by-date-v2";
 
 function sortTasks(tasks: Task[]) {
   return [...tasks].sort((a, b) => {
@@ -365,7 +340,7 @@ function ScrollableTaskList({ children, layoutKey }: { children: React.ReactNode
 }
 
 export default function SevenPrototype() {
-  const [weeks, setWeeks] = useState<Record<WeekId, Week>>(emptyWeeks);
+  const [tasksByDate, setTasksByDate] = useState<TaskCalendar<Task>>({});
   const [weekId, setWeekId] = useState<WeekId>("current");
   const [calendarDate, setCalendarDate] = useState(() => new Date());
   const [backgroundTheme, setBackgroundTheme] = useState<BackgroundTheme>("lake");
@@ -381,13 +356,13 @@ export default function SevenPrototype() {
   const [initialized, setInitialized] = useState(false);
   const [dragToast, setDragToast] = useState(false);
   const [neverWelcome, setNeverWelcome] = useState(false);
-  const [editor, setEditor] = useState<{ day: DayId; task?: Task } | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ day: DayId; task: Task } | null>(null);
+  const [editor, setEditor] = useState<{ dateKey: string; task?: Task } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ dateKey: string; task: Task } | null>(null);
   const [clearWeekOpen, setClearWeekOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [important, setImportant] = useState(false);
-  const [dragged, setDragged] = useState<{ week: WeekId; day: DayId; taskId: number } | null>(null);
+  const [dragged, setDragged] = useState<{ dateKey: string; taskId: number } | null>(null);
   const weekHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragToastTimer = useRef<number | null>(null);
   const backgroundFileRef = useRef<HTMLInputElement>(null);
@@ -449,11 +424,15 @@ export default function SevenPrototype() {
     const calendarTimer = window.setInterval(updateCalendarDate, 60_000);
 
     const welcomeDismissed = window.localStorage.getItem("seven-welcome-dismissed") === "yes";
-    const savedWeeks = storedWeeks(window.localStorage.getItem(taskStorageKey));
+    const savedCalendar = storedTaskCalendar<Task>(window.localStorage.getItem(taskStorageKey));
+    const migratedCalendar = savedCalendar
+      ? null
+      : migrateLegacyWeeks<Task>(window.localStorage.getItem(legacyTaskStorageKey), new Date());
     const savedBackgroundTheme = window.localStorage.getItem("seven-background-theme");
     const savedCustomBackground = window.localStorage.getItem("seven-custom-background");
     const initTimer = window.setTimeout(() => {
-      if (savedWeeks) setWeeks(savedWeeks);
+      if (savedCalendar) setTasksByDate(savedCalendar);
+      else if (migratedCalendar) setTasksByDate(migratedCalendar);
       if (savedCustomBackground) setCustomBackground(savedCustomBackground);
       if (savedBackgroundTheme === "custom" && savedCustomBackground) {
         setBackgroundTheme("custom");
@@ -472,8 +451,8 @@ export default function SevenPrototype() {
 
   useEffect(() => {
     if (!initialized) return;
-    window.localStorage.setItem(taskStorageKey, JSON.stringify(weeks));
-  }, [initialized, weeks]);
+    window.localStorage.setItem(taskStorageKey, JSON.stringify(tasksByDate));
+  }, [initialized, tasksByDate]);
 
   useEffect(() => {
     if (!backgroundMenuOpen) return;
@@ -508,10 +487,12 @@ export default function SevenPrototype() {
     };
   }, [initialized, welcome]);
 
-  const week = weeks[weekId];
   const displayDays = useMemo(() => daysForWeek(calendarDate, weekId), [calendarDate, weekId]);
   const todayDayId = dayIdForDate(calendarDate);
-  const allTasks = useMemo(() => Object.values(week).flat(), [week]);
+  const allTasks = useMemo(
+    () => displayDays.flatMap((day) => tasksByDate[day.dateKey] ?? []),
+    [displayDays, tasksByDate],
+  );
   const completedCount = allTasks.filter((task) => task.completed).length;
   const progress = allTasks.length ? Math.round((completedCount / allTasks.length) * 100) : 0;
 
@@ -520,8 +501,8 @@ export default function SevenPrototype() {
     setWelcome(false);
   };
 
-  const openEditor = (day: DayId, task?: Task) => {
-    setEditor({ day, task });
+  const openEditor = (dateKey: string, task?: Task) => {
+    setEditor({ dateKey, task });
     setTitle(task?.title ?? "");
     setDescription(task?.description ?? "");
     setImportant(task?.important ?? false);
@@ -531,63 +512,60 @@ export default function SevenPrototype() {
     event.preventDefault();
     if (!editor || !title.trim()) return;
     const isNewTask = !editor.task;
-    setWeeks((current) => {
-      const copy = { ...current, [weekId]: { ...current[weekId] } };
-      const tasks = [...copy[weekId][editor.day]];
+    setTasksByDate((current) => {
+      const tasks = [...(current[editor.dateKey] ?? [])];
       if (editor.task) {
         const index = tasks.findIndex((task) => task.id === editor.task?.id);
         tasks[index] = { ...tasks[index], title: title.trim(), description: description.trim(), important };
       } else {
         tasks.push({ id: Date.now(), title: title.trim(), description: description.trim(), important, completed: false });
       }
-      copy[weekId][editor.day] = tasks;
-      return copy;
+      return { ...current, [editor.dateKey]: tasks };
     });
     if (isNewTask) trackGoal("task_created");
     setEditor(null);
   };
 
-  const updateTask = (day: DayId, taskId: number, update: (task: Task) => Task) => {
-    setWeeks((current) => ({
+  const updateTask = (dateKey: string, taskId: number, update: (task: Task) => Task) => {
+    setTasksByDate((current) => ({
       ...current,
-      [weekId]: {
-        ...current[weekId],
-        [day]: current[weekId][day].map((task) => (task.id === taskId ? update(task) : task)),
-      },
+      [dateKey]: (current[dateKey] ?? []).map((task) => (task.id === taskId ? update(task) : task)),
     }));
   };
 
   const confirmDelete = () => {
     if (!deleteTarget) return;
-    setWeeks((current) => ({
+    setTasksByDate((current) => ({
       ...current,
-      [weekId]: {
-        ...current[weekId],
-        [deleteTarget.day]: current[weekId][deleteTarget.day].filter((task) => task.id !== deleteTarget.task.id),
-      },
+      [deleteTarget.dateKey]: (current[deleteTarget.dateKey] ?? []).filter((task) => task.id !== deleteTarget.task.id),
     }));
     setDeleteTarget(null);
   };
 
   const confirmClearWeek = () => {
-    setWeeks((current) => {
-      const clearedWeeks = { ...current, [weekId]: emptyWeek() };
-      window.localStorage.setItem(taskStorageKey, JSON.stringify(clearedWeeks));
-      return clearedWeeks;
+    setTasksByDate((current) => {
+      const clearedCalendar = { ...current };
+      displayDays.forEach((day) => delete clearedCalendar[day.dateKey]);
+      window.localStorage.setItem(taskStorageKey, JSON.stringify(clearedCalendar));
+      return clearedCalendar;
     });
     setClearWeekOpen(false);
   };
 
-  const dropOnDay = (targetDay: DayId) => {
+  const dropOnDay = (targetDateKey: string) => {
     if (!dragged) return;
-    const task = weeks[dragged.week][dragged.day].find((item) => item.id === dragged.taskId);
+    const task = (tasksByDate[dragged.dateKey] ?? []).find((item) => item.id === dragged.taskId);
     if (!task || task.completed) return;
-    setWeeks((current) => {
-      const sourceWeek = { ...current[dragged.week] };
-      const targetWeek = dragged.week === weekId ? sourceWeek : { ...current[weekId] };
-      sourceWeek[dragged.day] = sourceWeek[dragged.day].filter((item) => item.id !== dragged.taskId);
-      targetWeek[targetDay] = [...targetWeek[targetDay], task];
-      return { ...current, [dragged.week]: sourceWeek, [weekId]: targetWeek };
+    setTasksByDate((current) => {
+      const sourceTasks = (current[dragged.dateKey] ?? []).filter((item) => item.id !== dragged.taskId);
+      const targetTasks = dragged.dateKey === targetDateKey
+        ? sourceTasks
+        : [...(current[targetDateKey] ?? [])];
+      return {
+        ...current,
+        [dragged.dateKey]: sourceTasks,
+        [targetDateKey]: [...targetTasks, task],
+      };
     });
     setDragged(null);
   };
@@ -674,11 +652,11 @@ export default function SevenPrototype() {
     ? customBackground
     : builtInBackgrounds[backgroundTheme === "balloon" ? "balloon" : "lake"];
 
-  const renderTask = (day: DayId, task: Task, taskNumber: number) => (
+  const renderTask = (dateKey: string, task: Task, taskNumber: number) => (
     <article
       className={`task-card ${task.important ? "task-important" : ""} ${task.completed ? "task-completed" : ""}`}
       draggable={!task.completed}
-      onDragStart={() => { dismissDragToast(); setDragged({ week: weekId, day, taskId: task.id }); }}
+      onDragStart={() => { dismissDragToast(); setDragged({ dateKey, taskId: task.id }); }}
       onDragEnd={() => { setDragged(null); cancelWeekHover(); }}
       key={task.id}
     >
@@ -693,21 +671,21 @@ export default function SevenPrototype() {
         <div className="task-reveal">
           {task.description && <p className="task-description">{task.description}</p>}
           <div className="task-actions">
-            <button type="button" data-tip="Отметить выполненной" aria-label="Отметить выполненной" onClick={() => updateTask(day, task.id, (item) => ({ ...item, completed: true }))}>
+            <button type="button" data-tip="Отметить выполненной" aria-label="Отметить выполненной" onClick={() => updateTask(dateKey, task.id, (item) => ({ ...item, completed: true }))}>
               <CompleteIcon />
             </button>
-            <button type="button" data-tip={task.important ? "Убрать важность" : "Отметить важной"} aria-label={task.important ? "Убрать важность" : "Отметить важной"} onClick={() => updateTask(day, task.id, (item) => ({ ...item, important: !item.important }))}>
+            <button type="button" data-tip={task.important ? "Убрать важность" : "Отметить важной"} aria-label={task.important ? "Убрать важность" : "Отметить важной"} onClick={() => updateTask(dateKey, task.id, (item) => ({ ...item, important: !item.important }))}>
               <ImportantIcon className="task-importance-dot" />
             </button>
-            <button type="button" data-tip="Редактировать" aria-label="Редактировать" onClick={() => openEditor(day, task)}><EditIcon /></button>
-            <button type="button" data-tip="Удалить" aria-label="Удалить" onClick={() => setDeleteTarget({ day, task })}>
+            <button type="button" data-tip="Редактировать" aria-label="Редактировать" onClick={() => openEditor(dateKey, task)}><EditIcon /></button>
+            <button type="button" data-tip="Удалить" aria-label="Удалить" onClick={() => setDeleteTarget({ dateKey, task })}>
               <DeleteIcon />
             </button>
           </div>
         </div>
       )}
       {task.completed && (
-        <button className="restore-task" type="button" onClick={() => updateTask(day, task.id, (item) => ({ ...item, completed: false }))}>
+        <button className="restore-task" type="button" onClick={() => updateTask(dateKey, task.id, (item) => ({ ...item, completed: false }))}>
           Вернуть в работу
         </button>
       )}
@@ -718,8 +696,8 @@ export default function SevenPrototype() {
     <section
       className={`day-panel ${day.id === todayDayId && weekId === "current" ? "today" : ""} ${compact ? "compact-day" : ""}`}
       onDragOver={(event) => event.preventDefault()}
-      onDrop={() => dropOnDay(day.id)}
-      key={day.id}
+      onDrop={() => dropOnDay(day.dateKey)}
+      key={day.dateKey}
     >
       <header className="day-header">
         <div>
@@ -728,10 +706,10 @@ export default function SevenPrototype() {
         </div>
         {day.id === todayDayId && weekId === "current" && <span className="today-label">Сегодня</span>}
       </header>
-      <ScrollableTaskList layoutKey={week[day.id].map((task) => `${task.id}:${task.title}:${task.completed}:${task.important}`).join("|")}>
-        {numberTasks(week[day.id]).map(({ task, number }) => renderTask(day.id, task, number))}
+      <ScrollableTaskList layoutKey={(tasksByDate[day.dateKey] ?? []).map((task) => `${task.id}:${task.title}:${task.completed}:${task.important}`).join("|")}>
+        {numberTasks(tasksByDate[day.dateKey] ?? []).map(({ task, number }) => renderTask(day.dateKey, task, number))}
       </ScrollableTaskList>
-      <button className="add-task" type="button" aria-label="Добавить задачу" onClick={() => openEditor(day.id)}><span aria-hidden="true">＋</span></button>
+      <button className="add-task" type="button" aria-label="Добавить задачу" onClick={() => openEditor(day.dateKey)}><span aria-hidden="true">＋</span></button>
     </section>
   );
 
