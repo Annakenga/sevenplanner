@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
-import { initializeAnalytics, trackGoal } from "./analytics";
 import {
   localDateKey,
   migrateLegacyWeeks,
@@ -18,15 +17,13 @@ type Task = {
   id: number;
   title: string;
   description: string;
+  scheduledTime?: string;
   important: boolean;
   completed: boolean;
 };
 
 type DayMeta = { id: DayId; short: string; full: string };
 type CalendarDay = DayMeta & { date: string; dateKey: string };
-type FeedbackStatus = "idle" | "sending" | "success" | "error";
-
-const feedbackEndpoint = "https://functions.yandexcloud.net/d4e8f0eiq0gipgc3agkp";
 
 const dayMeta: DayMeta[] = [
   { id: "mon", short: "Пн", full: "Понедельник" },
@@ -42,6 +39,12 @@ const monthNames = [
   "января", "февраля", "марта", "апреля", "мая", "июня",
   "июля", "августа", "сентября", "октября", "ноября", "декабря",
 ];
+
+const timeOptions = Array.from({ length: 48 }, (_, index) => {
+  const hours = Math.floor(index / 2).toString().padStart(2, "0");
+  const minutes = index % 2 === 0 ? "00" : "30";
+  return `${hours}:${minutes}`;
+});
 
 function startOfWeek(date: Date) {
   return startOfLocalWeek(date);
@@ -69,19 +72,19 @@ const taskStorageKey = "seven-tasks-by-date-v3";
 function sortTasks(tasks: Task[]) {
   return [...tasks].sort((a, b) => {
     if (a.completed !== b.completed) return Number(a.completed) - Number(b.completed);
-    if (!a.completed && a.important !== b.important) return Number(b.important) - Number(a.important);
+    if (!a.completed) {
+      const aHasTime = Boolean(a.scheduledTime);
+      const bHasTime = Boolean(b.scheduledTime);
+      if (aHasTime && bHasTime) return a.scheduledTime!.localeCompare(b.scheduledTime!);
+      if (aHasTime !== bHasTime) return aHasTime ? -1 : 1;
+      if (a.important !== b.important) return Number(b.important) - Number(a.important);
+    }
     return 0;
   });
 }
 
-function numberTasks(tasks: Task[]) {
-  let activeNumber = 0;
-  let completedNumber = 0;
-
-  return sortTasks(tasks).map((task) => ({
-    task,
-    number: task.completed ? ++completedNumber : ++activeNumber,
-  }));
+function isTaskImportant(task: Task) {
+  return task.important || Boolean(task.scheduledTime);
 }
 
 function dayIdForDate(date: Date): DayId {
@@ -124,6 +127,27 @@ function ImportantIcon({ className = "", label }: { className?: string; label?: 
         fill="#f39824"
         opacity="0.82"
       />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  const faceGradientId = useId();
+
+  return (
+    <svg className="task-clock-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <defs>
+        <linearGradient id={faceGradientId} x1="6" y1="4" x2="18" y2="21" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#e5f2f7" />
+          <stop offset="0.55" stopColor="#a9c4d2" />
+          <stop offset="1" stopColor="#6f91a5" />
+        </linearGradient>
+      </defs>
+      <circle cx="12" cy="12" r="9.25" fill={`url(#${faceGradientId})`} stroke="#3f6980" strokeWidth="1.15" />
+      <circle cx="12" cy="12" r="7.25" fill="none" stroke="rgba(255,255,255,.48)" strokeWidth=".75" />
+      <path d="M12 7.75v4.45l3.25 2.05" fill="none" stroke="#173a50" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="12.2" r="1.15" fill="#ff8a4c" stroke="#d96832" strokeWidth=".55" />
+      <ellipse cx="8.7" cy="7.4" rx="2.1" ry="1.15" fill="white" opacity=".42" transform="rotate(-32 8.7 7.4)" />
     </svg>
   );
 }
@@ -243,21 +267,6 @@ function BulbIcon() {
   );
 }
 
-function SendIcon() {
-  return (
-    <svg className="developer-contact-icon" viewBox="0 0 24 24" aria-hidden="true">
-      <defs>
-        <mask id="seven-send-shape">
-          <rect width="24" height="24" fill="black" />
-          <path d="M2.75 10.95 20.1 3.25c1.02-.45 2.1.42 1.88 1.51l-3.16 15.57c-.2.98-1.34 1.41-2.14.82l-6.1-4.5-3 2.7c-.58.52-1.51.11-1.51-.67v-3.73l-1.56-.73c-.84-.39-1.7-.96-2.28-1.68-.35-.44-.42-1.03-.16-1.52.14-.27.38-.48.68-.61Z" fill="white" />
-          <path d="m7.95 14.45 8.98-7.19c.46-.37 1.04.23.67.69l-6.97 8.62-2.68-2.12Z" fill="black" />
-        </mask>
-      </defs>
-      <rect width="24" height="24" fill="currentColor" mask="url(#seven-send-shape)" />
-    </svg>
-  );
-}
-
 function BroomIcon() {
   return (
     <svg className="clear-week-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -347,11 +356,6 @@ export default function SevenPrototype() {
   const [backgroundTheme, setBackgroundTheme] = useState<BackgroundTheme>("lake");
   const [customBackground, setCustomBackground] = useState<string | null>(null);
   const [backgroundMenuOpen, setBackgroundMenuOpen] = useState(false);
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [feedbackName, setFeedbackName] = useState("");
-  const [feedbackText, setFeedbackText] = useState("");
-  const [feedbackStatus, setFeedbackStatus] = useState<FeedbackStatus>("idle");
-  const [feedbackStatusText, setFeedbackStatusText] = useState("");
   const [backgroundError, setBackgroundError] = useState("");
   const [welcome, setWelcome] = useState(false);
   const [initialized, setInitialized] = useState(false);
@@ -362,64 +366,17 @@ export default function SevenPrototype() {
   const [clearWeekOpen, setClearWeekOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [scheduledTime, setScheduledTime] = useState("");
+  const [timeMenuOpen, setTimeMenuOpen] = useState(false);
   const [important, setImportant] = useState(false);
   const [dragged, setDragged] = useState<{ dateKey: string; taskId: number } | null>(null);
   const weekHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragToastTimer = useRef<number | null>(null);
   const backgroundFileRef = useRef<HTMLInputElement>(null);
   const backgroundSettingsRef = useRef<HTMLDivElement>(null);
-
-  const openFeedback = () => {
-    setFeedbackStatus("idle");
-    setFeedbackStatusText("");
-    setFeedbackOpen(true);
-  };
-
-  const closeFeedback = () => {
-    if (feedbackStatus === "sending") return;
-    setFeedbackStatus("idle");
-    setFeedbackStatusText("");
-    setFeedbackOpen(false);
-  };
-
-  const sendFeedback = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const message = feedbackText.trim();
-    if (!message || feedbackStatus === "sending") return;
-
-    setFeedbackStatus("sending");
-    setFeedbackStatusText("Отправляем обращение…");
-
-    try {
-      const response = await fetch(feedbackEndpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: feedbackName.trim(),
-          message,
-        }),
-      });
-
-      const result = await response.json().catch(() => null);
-      if (!response.ok || !result?.success) {
-        throw new Error(result?.error || "Не удалось отправить обращение");
-      }
-
-      setFeedbackName("");
-      setFeedbackText("");
-      setFeedbackStatus("success");
-      setFeedbackStatusText("Спасибо! Обращение отправлено разработчику.");
-      trackGoal("feedback_sent");
-    } catch {
-      setFeedbackStatus("error");
-      setFeedbackStatusText("Не удалось отправить. Проверь интернет и попробуй ещё раз.");
-    }
-  };
+  const timePickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    initializeAnalytics();
-
     const updateCalendarDate = () => setCalendarDate(new Date());
     updateCalendarDate();
     const calendarTimer = window.setInterval(updateCalendarDate, 60_000);
@@ -478,6 +435,30 @@ export default function SevenPrototype() {
   }, [backgroundMenuOpen]);
 
   useEffect(() => {
+    if (!timeMenuOpen) return;
+
+    const closeMenu = (event: PointerEvent) => {
+      if (!timePickerRef.current?.contains(event.target as Node)) setTimeMenuOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setTimeMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", closeMenu);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeMenu);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [timeMenuOpen]);
+
+  useEffect(() => {
+    if (!timeMenuOpen) return;
+    const selectedOption = timePickerRef.current?.querySelector<HTMLElement>(".task-time-option.selected");
+    selectedOption?.scrollIntoView({ block: "nearest" });
+  }, [timeMenuOpen]);
+
+  useEffect(() => {
     if (!initialized || welcome || window.localStorage.getItem("seven-drag-toast-v16-seen") === "yes") return;
 
     dragToastTimer.current = window.setTimeout(() => {
@@ -510,24 +491,25 @@ export default function SevenPrototype() {
     setEditor({ dateKey, task });
     setTitle(task?.title ?? "");
     setDescription(task?.description ?? "");
-    setImportant(task?.important ?? false);
+    setScheduledTime(task?.scheduledTime ?? "");
+    setTimeMenuOpen(false);
+    setImportant(task ? isTaskImportant(task) : false);
   };
 
   const saveTask = (event: FormEvent) => {
     event.preventDefault();
     if (!editor || !title.trim()) return;
-    const isNewTask = !editor.task;
     setTasksByDate((current) => {
       const tasks = [...(current[editor.dateKey] ?? [])];
       if (editor.task) {
         const index = tasks.findIndex((task) => task.id === editor.task?.id);
-        tasks[index] = { ...tasks[index], title: title.trim(), description: description.trim(), important };
+        tasks[index] = { ...tasks[index], title: title.trim(), description: description.trim(), scheduledTime: scheduledTime || undefined, important: Boolean(scheduledTime) || important };
       } else {
-        tasks.push({ id: Date.now(), title: title.trim(), description: description.trim(), important, completed: false });
+        tasks.push({ id: Date.now(), title: title.trim(), description: description.trim(), scheduledTime: scheduledTime || undefined, important: Boolean(scheduledTime) || important, completed: false });
       }
       return { ...current, [editor.dateKey]: tasks };
     });
-    if (isNewTask) trackGoal("task_created");
+    setTimeMenuOpen(false);
     setEditor(null);
   };
 
@@ -657,9 +639,9 @@ export default function SevenPrototype() {
     ? customBackground
     : builtInBackgrounds[backgroundTheme === "balloon" ? "balloon" : "lake"];
 
-  const renderTask = (dateKey: string, task: Task, taskNumber: number) => (
+  const renderTask = (dateKey: string, task: Task) => (
     <article
-      className={`task-card ${task.important ? "task-important" : ""} ${task.completed ? "task-completed" : ""}`}
+      className={`task-card ${isTaskImportant(task) ? "task-important" : ""} ${task.completed ? "task-completed" : ""}`}
       draggable={!task.completed}
       onDragStart={() => { dismissDragToast(); setDragged({ dateKey, taskId: task.id }); }}
       onDragEnd={() => { setDragged(null); cancelWeekHover(); }}
@@ -667,10 +649,15 @@ export default function SevenPrototype() {
     >
       <div className="task-title-row">
         <div className="task-title-main">
-          <span className="task-number" aria-hidden="true">{String(taskNumber).padStart(2, "0")}.</span>
+          {task.scheduledTime && (
+            <span className="task-time-group">
+              <ClockIcon />
+              <span className="task-scheduled-time">{task.scheduledTime}</span>
+            </span>
+          )}
           <p>{task.title}</p>
         </div>
-        {task.important && !task.completed && <ImportantIcon className="task-importance-dot" label="Важная задача" />}
+        {isTaskImportant(task) && !task.completed && <ImportantIcon className="task-importance-dot" label="Важная задача" />}
       </div>
       {!task.completed && (
         <div className="task-reveal">
@@ -679,9 +666,11 @@ export default function SevenPrototype() {
             <button type="button" data-tip="Отметить выполненной" aria-label="Отметить выполненной" onClick={() => updateTask(dateKey, task.id, (item) => ({ ...item, completed: true }))}>
               <CompleteIcon />
             </button>
-            <button type="button" data-tip={task.important ? "Убрать важность" : "Отметить важной"} aria-label={task.important ? "Убрать важность" : "Отметить важной"} onClick={() => updateTask(dateKey, task.id, (item) => ({ ...item, important: !item.important }))}>
-              <ImportantIcon className="task-importance-dot" />
-            </button>
+            {!task.scheduledTime && (
+              <button type="button" data-tip={task.important ? "Убрать важность" : "Отметить важной"} aria-label={task.important ? "Убрать важность" : "Отметить важной"} onClick={() => updateTask(dateKey, task.id, (item) => ({ ...item, important: !item.important }))}>
+                <ImportantIcon className="task-importance-dot" />
+              </button>
+            )}
             <button type="button" data-tip="Редактировать" aria-label="Редактировать" onClick={() => openEditor(dateKey, task)}><EditIcon /></button>
             <button type="button" data-tip="Удалить" aria-label="Удалить" onClick={() => setDeleteTarget({ dateKey, task })}>
               <DeleteIcon />
@@ -711,8 +700,8 @@ export default function SevenPrototype() {
         </div>
         {day.id === todayDayId && weekId === "current" && <span className="today-label">Сегодня</span>}
       </header>
-      <ScrollableTaskList layoutKey={(tasksByDate[day.dateKey] ?? []).map((task) => `${task.id}:${task.title}:${task.completed}:${task.important}`).join("|")}>
-        {numberTasks(tasksByDate[day.dateKey] ?? []).map(({ task, number }) => renderTask(day.dateKey, task, number))}
+      <ScrollableTaskList layoutKey={(tasksByDate[day.dateKey] ?? []).map((task) => `${task.id}:${task.title}:${task.scheduledTime ?? ""}:${task.completed}:${task.important}`).join("|")}>
+        {sortTasks(tasksByDate[day.dateKey] ?? []).map((task) => renderTask(day.dateKey, task))}
       </ScrollableTaskList>
       <button className="add-task" type="button" aria-label="Добавить задачу" onClick={() => openEditor(day.dateKey)}><span aria-hidden="true">＋</span></button>
     </section>
@@ -761,6 +750,7 @@ export default function SevenPrototype() {
                 className={`settings-trigger ${backgroundMenuOpen ? "active" : ""}`}
                 type="button"
                 aria-label="Настройки фона"
+                data-tip="Настройки фона"
                 aria-expanded={backgroundMenuOpen}
                 onClick={() => { setBackgroundError(""); setBackgroundMenuOpen((open) => !open); }}
               >
@@ -775,15 +765,6 @@ export default function SevenPrototype() {
               )}
               <input ref={backgroundFileRef} className="background-file-input" type="file" accept="image/*" onChange={uploadCustomBackground} />
             </div>
-            <button
-              className="developer-contact"
-              type="button"
-              aria-label="Написать разработчику"
-              data-tip="Написать разработчику"
-              onClick={openFeedback}
-            >
-              <SendIcon />
-            </button>
             <nav className="week-switch" aria-label="Выбор недели">
               <button className={weekId === "current" ? "active" : ""} type="button" onClick={() => setWeekId("current")} onDragEnter={() => hoverWeek("current")} onDragLeave={cancelWeekHover}>Эта неделя</button>
               <button className={weekId === "next" ? "active" : ""} type="button" onClick={() => setWeekId("next")} onDragEnter={() => hoverWeek("next")} onDragLeave={cancelWeekHover}>Следующая неделя</button>
@@ -820,64 +801,11 @@ export default function SevenPrototype() {
             <span className="modal-kicker">Добро пожаловать</span>
             <p>Это первая версия приложения, и она продолжает развиваться.</p>
             <p className="welcome-storage-note"><strong>Обрати внимание:</strong><span>Пока что все задачи сохраняются только в этом браузере<br />и только на этом устройстве</span></p>
-            <p className="welcome-analytics-note">Для улучшения Seven используется Яндекс Метрика. Она считает посещения и действия без передачи текстов задач и обращений.</p>
             <label className="welcome-check"><input type="checkbox" checked={neverWelcome} onChange={(event) => setNeverWelcome(event.target.checked)} /> Больше не показывать</label>
             <div className="modal-actions">
               <button className="button primary-button" type="button" onClick={closeWelcome}>Понял, принял</button>
             </div>
           </section>
-        </div>
-      )}
-
-      {feedbackOpen && (
-        <div className="modal-layer">
-          {feedbackStatus === "success" ? (
-            <section className="modal-card feedback-success-card" role="dialog" aria-modal="true" aria-labelledby="feedback-success-title">
-              <p id="feedback-success-title">Спасибо! Обращение было отправлено разработчику ;)</p>
-              <button className="button primary-button" type="button" autoFocus onClick={closeFeedback}>Закрыть</button>
-            </section>
-          ) : (
-            <form className="modal-card feedback-card" onSubmit={sendFeedback} role="dialog" aria-modal="true" aria-labelledby="feedback-title">
-              <span className="modal-kicker">Обратная связь</span>
-              <h2 id="feedback-title">Написать разработчику</h2>
-              <label>
-                Имя
-                <input
-                  autoFocus
-                  value={feedbackName}
-                  onChange={(event) => {
-                    setFeedbackName(event.target.value);
-                    if (feedbackStatus !== "sending") setFeedbackStatus("idle");
-                  }}
-                  placeholder="Необязательно, от анонимов тоже принимаю обратную связь :)"
-                  disabled={feedbackStatus === "sending"}
-                />
-              </label>
-              <label>
-                Сообщение
-                <textarea
-                  value={feedbackText}
-                  onChange={(event) => {
-                    setFeedbackText(event.target.value);
-                    if (feedbackStatus !== "sending") setFeedbackStatus("idle");
-                  }}
-                  placeholder="Расскажи об идее, пожелании или проблеме"
-                  disabled={feedbackStatus === "sending"}
-                />
-              </label>
-              {feedbackStatus !== "idle" && (
-                <p className={`feedback-status ${feedbackStatus}`} role="status" aria-live="polite">
-                  {feedbackStatusText}
-                </p>
-              )}
-              <div className="modal-actions">
-                <button className="button primary-button" type="submit" disabled={!feedbackText.trim() || feedbackStatus === "sending"}>
-                  {feedbackStatus === "sending" ? "Отправляем…" : "Отправить"}
-                </button>
-                <button className="button secondary-button" type="button" disabled={feedbackStatus === "sending"} onClick={closeFeedback}>Отменить</button>
-              </div>
-            </form>
-          )}
         </div>
       )}
 
@@ -888,15 +816,54 @@ export default function SevenPrototype() {
             <h2 id="task-editor-title">{editor.task ? "Редактировать задачу" : "Добавить задачу"}</h2>
             <label>Название задачи <span>{title.length}/50</span><input autoFocus value={title} maxLength={50} onChange={(event) => setTitle(event.target.value)} placeholder="Что нужно сделать?" /></label>
             <label>Описание <span>{description.length}/100</span><textarea value={description} maxLength={100} onChange={(event) => setDescription(event.target.value)} placeholder="Необязательно" /></label>
+            <div className="task-time-field">
+              <div className="task-time-picker" ref={timePickerRef}>
+                <button
+                  className="task-time-trigger"
+                  type="button"
+                  aria-haspopup="listbox"
+                  aria-expanded={timeMenuOpen}
+                  onClick={() => setTimeMenuOpen((open) => !open)}
+                >
+                  <span>{scheduledTime || "Без времени"}</span>
+                  <span className="task-time-chevron" aria-hidden="true" />
+                </button>
+                {timeMenuOpen && (
+                  <div className="task-time-menu" role="listbox" aria-label="Время задачи">
+                    <button
+                      className={`task-time-option ${scheduledTime === "" ? "selected" : ""}`}
+                      type="button"
+                      role="option"
+                      aria-selected={scheduledTime === ""}
+                      onClick={() => { setScheduledTime(""); setTimeMenuOpen(false); }}
+                    >
+                      Без времени
+                    </button>
+                    {timeOptions.map((time) => (
+                      <button
+                        className={`task-time-option ${scheduledTime === time ? "selected" : ""}`}
+                        key={time}
+                        type="button"
+                        role="option"
+                        aria-selected={scheduledTime === time}
+                        onClick={() => { setScheduledTime(time); setImportant(true); setTimeMenuOpen(false); }}
+                      >
+                        {time}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
             <fieldset>
               <legend>Приоритет</legend>
               <div className="priority-options">
-                <button className={!important ? "selected" : ""} type="button" onClick={() => setImportant(false)}>Обычная</button>
+                <button className={!important ? "selected" : ""} type="button" disabled={Boolean(scheduledTime)} onClick={() => setImportant(false)}>Обычная</button>
                 <button className={`important-choice ${important ? "selected" : ""}`} type="button" onClick={() => setImportant(true)}><ImportantIcon /><span>Важная</span></button>
               </div>
             </fieldset>
             <div className="modal-actions">
-              <button className="button secondary-button" type="button" onClick={() => setEditor(null)}>Отменить</button>
+              <button className="button secondary-button" type="button" onClick={() => { setTimeMenuOpen(false); setEditor(null); }}>Отменить</button>
               <button className="button primary-button" type="submit" disabled={!title.trim()}>Сохранить задачу</button>
             </div>
           </form>
