@@ -39,6 +39,7 @@
   left: 0;
   right: auto;
   bottom: auto;
+  height: 190px;
   opacity: .8;
   background-position: left top;
   mask-image: radial-gradient(ellipse 100% 100% at 0% 0%, #000 0%, #000 25%, transparent 100%);
@@ -174,8 +175,22 @@
 }
 .theme-graphite .task-completed { background: transparent; box-shadow: none; }
 .theme-graphite .task-completed .task-title-row p,
-.theme-graphite .task-completed .task-scheduled-time { color: #737b72; text-decoration-color: #737b72; text-decoration-thickness: 1px; }
-.theme-graphite .task-completed .task-scheduled-time { border-color: transparent; }
+.theme-graphite .task-completed .task-scheduled-time { color: #737b72; text-decoration: none; }
+.theme-graphite .task-completed .task-title-main { position: relative; max-width: 100%; }
+.theme-graphite .task-completed .task-title-main::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: #737b72;
+  pointer-events: none;
+}
+.theme-graphite .task-completed .task-title-row p { min-width: 0; }
+.theme-graphite .task-completed .task-title-main,
+.theme-graphite .task-completed .task-time-group { align-items: baseline; }
+.theme-graphite .task-completed .task-scheduled-time { border-bottom: 0; font-weight: 400; font-size: 12px; line-height: 1.4; }
 .theme-graphite .add-task { border-radius: 4px; background: #ebebeb; border: 1px solid #b6bdb2; color: #434d42; }
 .theme-graphite .add-task:hover { background: var(--orange); color: #fff; border-color: var(--orange); }
 .theme-graphite .site-footer { color: #626262; text-shadow: none; }
