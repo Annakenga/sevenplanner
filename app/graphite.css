@@ -94,10 +94,10 @@
 .theme-graphite .week-grid > :not(:first-child)::before {
   content: '';
   position: absolute;
-  left: -5px;
+  left: var(--divider-left, -5px);
   top: 24px;
   bottom: 0;
-  width: 1px;
+  width: var(--divider-width, 1px);
   background: #bfc2bd;
   pointer-events: none;
 }
@@ -190,6 +190,11 @@
 .theme-graphite .background-menu button { color: var(--ink); }
 .theme-graphite .background-menu button:hover,
 .theme-graphite .background-menu button:focus-visible { background: #e2e2e2; color: var(--ink); }
+.theme-graphite .background-menu button:disabled {
+  color: #929692;
+  background: transparent;
+  cursor: not-allowed;
+}
 .theme-graphite .modal-card p,
 .theme-graphite .welcome-check,
 .theme-graphite .task-editor label,

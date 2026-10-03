@@ -22,6 +22,7 @@ test("server-renders Seven", async () => {
   assert.match(html, /<title>Seven\. Неделя в твоем ритме<\/title>/i);
   assert.match(html, /class="seven-shell theme-graphite"/);
   assert.match(html, /Настройки темы/);
+  assert.doesNotMatch(html, /Загрузить свой фон|type="file"|graphite-center-plus/);
   assert.doesNotMatch(html, /seven-karelia-forest-mist-night/);
   assert.match(html, /Прогресс недели/);
   assert.match(html, /Следующая неделя/);

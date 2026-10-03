@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
-import { meadowBackground, nextBuiltInTheme, storedTheme, themeStorageKey, type PlannerTheme } from "./plannerTheme";
+import { storedTheme, themeStorageKey, type PlannerTheme } from "./plannerTheme";
 import {
   localDateKey,
   migrateLegacyWeeks,
@@ -359,9 +359,7 @@ export default function SevenPrototype() {
   const [weekId, setWeekId] = useState<WeekId>("current");
   const [calendarDate, setCalendarDate] = useState(() => new Date());
   const [backgroundTheme, setBackgroundTheme] = useState<PlannerTheme>("graphite");
-  const [customBackground, setCustomBackground] = useState<string | null>(null);
   const [backgroundMenuOpen, setBackgroundMenuOpen] = useState(false);
-  const [backgroundError, setBackgroundError] = useState("");
   const [welcome, setWelcome] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [dragToast, setDragToast] = useState(false);
@@ -377,7 +375,7 @@ export default function SevenPrototype() {
   const [dragged, setDragged] = useState<{ dateKey: string; taskId: number } | null>(null);
   const weekHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragToastTimer = useRef<number | null>(null);
-  const backgroundFileRef = useRef<HTMLInputElement>(null);
+  const weekGridRef = useRef<HTMLElement>(null);
   const backgroundSettingsRef = useRef<HTMLDivElement>(null);
   const timePickerRef = useRef<HTMLDivElement>(null);
 
@@ -395,13 +393,11 @@ export default function SevenPrototype() {
       ? null
       : storedTaskCalendar<Task>(window.localStorage.getItem(previousTaskStorageKey));
     const savedBackgroundTheme = window.localStorage.getItem(themeStorageKey);
-    const savedCustomBackground = window.localStorage.getItem("seven-custom-background");
     const initTimer = window.setTimeout(() => {
       if (savedCalendar) setTasksByDate(savedCalendar);
       else if (legacyCalendar) setTasksByDate(legacyCalendar);
       else if (previousCalendar) setTasksByDate(previousCalendar);
-      if (savedCustomBackground) setCustomBackground(savedCustomBackground);
-      setBackgroundTheme(storedTheme(savedBackgroundTheme, savedCustomBackground));
+      setBackgroundTheme(storedTheme(savedBackgroundTheme));
       if (!welcomeDismissed) setWelcome(true);
       setInitialized(true);
     }, 0);
@@ -416,6 +412,42 @@ export default function SevenPrototype() {
     if (!initialized) return;
     window.localStorage.setItem(taskStorageKey, JSON.stringify(tasksByDate));
   }, [initialized, tasksByDate]);
+
+  useEffect(() => {
+    const grid = weekGridRef.current;
+    if (!grid) return;
+    // Equal grid columns can land on fractional device pixels (especially at
+    // Windows 125%/150% scaling). Snap both edges of every divider consistently.
+    const alignDividers = () => {
+      const ratio = window.devicePixelRatio || 1;
+      const width = Math.max(1, Math.round(ratio)) / ratio;
+      const columns = Array.from(grid.children) as HTMLElement[];
+      columns.slice(1).forEach((column, index) => {
+        const left = column.getBoundingClientRect().left;
+        const previousRight = columns[index].getBoundingClientRect().right;
+        const center = (previousRight + left) / 2;
+        const alignedLeft = Math.round((center - width / 2) * ratio) / ratio;
+        column.style.setProperty("--divider-left", `${alignedLeft - left}px`);
+        column.style.setProperty("--divider-width", `${width}px`);
+      });
+    };
+    const observer = new ResizeObserver(alignDividers);
+    observer.observe(grid);
+    let resolution: MediaQueryList;
+    const watchResolution = () => {
+      resolution?.removeEventListener("change", watchResolution);
+      alignDividers();
+      resolution = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+      resolution.addEventListener("change", watchResolution);
+    };
+    watchResolution();
+    window.addEventListener("resize", alignDividers);
+    return () => {
+      observer.disconnect();
+      resolution.removeEventListener("change", watchResolution);
+      window.removeEventListener("resize", alignDividers);
+    };
+  }, []);
 
   useEffect(() => {
     if (!backgroundMenuOpen) return;
@@ -577,69 +609,6 @@ export default function SevenPrototype() {
     setDragToast(false);
   };
 
-  const cycleBuiltInBackground = () => {
-    const nextTheme = nextBuiltInTheme(backgroundTheme);
-    setBackgroundTheme(nextTheme);
-    setBackgroundError("");
-    setBackgroundMenuOpen(false);
-    window.localStorage.setItem(themeStorageKey, nextTheme);
-  };
-
-  const uploadCustomBackground = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setBackgroundError("Выбери файл с изображением");
-      return;
-    }
-    if (file.size > 20 * 1024 * 1024) {
-      setBackgroundError("Изображение должно быть меньше 20 МБ");
-      return;
-    }
-
-    const objectUrl = URL.createObjectURL(file);
-    const image = new Image();
-    image.onload = () => {
-      const maxWidth = 2400;
-      const maxHeight = 1600;
-      const scale = Math.min(1, maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-      const context = canvas.getContext("2d");
-      if (!context) {
-        setBackgroundError("Не удалось обработать изображение");
-        URL.revokeObjectURL(objectUrl);
-        return;
-      }
-
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL("image/jpeg", .84);
-      URL.revokeObjectURL(objectUrl);
-
-      try {
-        window.localStorage.setItem("seven-custom-background", dataUrl);
-        window.localStorage.setItem(themeStorageKey, "custom");
-        setCustomBackground(dataUrl);
-        setBackgroundTheme("custom");
-        setBackgroundError("");
-        setBackgroundMenuOpen(false);
-      } catch {
-        setBackgroundError("Файл слишком большой — выбери изображение поменьше");
-      }
-    };
-    image.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      setBackgroundError("Не удалось открыть изображение");
-    };
-    image.src = objectUrl;
-  };
-
-  const backgroundUrl = backgroundTheme === "custom" && customBackground
-    ? customBackground
-    : backgroundTheme === "meadow" ? meadowBackground : null;
-
   const renderImportance = (className = "", label?: string) => backgroundTheme === "graphite"
     ? <span className={`priority-light ${className}`} role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true} />
     : <ImportantIcon className={className} label={label} />;
@@ -713,7 +682,7 @@ export default function SevenPrototype() {
   );
 
   return (
-    <main className={`seven-shell theme-${backgroundTheme}`} style={{ backgroundImage: backgroundUrl ? `url("${backgroundUrl}")` : undefined }}>
+    <main className={`seven-shell theme-${backgroundTheme}`}>
       {backgroundTheme === "graphite" && <div className="graphite-wordmark" aria-hidden="true">seven</div>}
       {backgroundTheme === "graphite" && <div className="graphite-grid-paper" aria-hidden="true" />}
       {backgroundTheme === "graphite" && <div className="graphite-grid-paper-top" aria-hidden="true" />}
@@ -760,18 +729,15 @@ export default function SevenPrototype() {
                 aria-label="Настройки темы"
                 data-tip="Настройки темы"
                 aria-expanded={backgroundMenuOpen}
-                onClick={() => { setBackgroundError(""); setBackgroundMenuOpen((open) => !open); }}
+                onClick={() => setBackgroundMenuOpen((open) => !open)}
               >
                 <span className="settings-gear" aria-hidden="true" />
               </button>
               {backgroundMenuOpen && (
                 <div className="background-menu" role="menu" aria-label="Настройки темы">
-                  <button type="button" role="menuitem" onClick={cycleBuiltInBackground}>Обновить тему</button>
-                  <button type="button" role="menuitem" onClick={() => backgroundFileRef.current?.click()}>Загрузить свой фон</button>
-                  {backgroundError && <p role="alert">{backgroundError}</p>}
+                  <button type="button" role="menuitem" disabled aria-disabled="true">Обновить тему</button>
                 </div>
               )}
-              <input ref={backgroundFileRef} className="background-file-input" type="file" accept="image/*" onChange={uploadCustomBackground} />
             </div>
             <nav className="week-switch" aria-label="Выбор недели">
               <button className={weekId === "current" ? "active" : ""} type="button" onClick={() => setWeekId("current")} onDragEnter={() => hoverWeek("current")} onDragLeave={cancelWeekHover}>Эта неделя</button>
@@ -780,7 +746,7 @@ export default function SevenPrototype() {
           </div>
         </header>
 
-        <section className="week-grid" aria-label="Задачи на неделю">
+        <section className="week-grid" ref={weekGridRef} aria-label="Задачи на неделю">
           {displayDays.slice(0, 5).map((day) => renderDay(day))}
           <div className={`weekend-panel ${weekId === "current" && (todayDayId === "sat" || todayDayId === "sun") ? "today" : ""}`}>
             {renderDay(displayDays[5], true)}
