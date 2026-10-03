@@ -717,7 +717,6 @@ export default function SevenPrototype() {
       {backgroundTheme === "graphite" && <div className="graphite-wordmark" aria-hidden="true">seven</div>}
       {backgroundTheme === "graphite" && <div className="graphite-grid-paper" aria-hidden="true" />}
       {backgroundTheme === "graphite" && <div className="graphite-grid-paper-top" aria-hidden="true" />}
-      {backgroundTheme === "graphite" && <svg className="graphite-center-plus" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1v10M1 6h10" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>}
       <div className="mobile-message">
         <div className="mobile-message-card">
           <div className="brand-logo">Seven<span className="brand-dot">.</span></div>
