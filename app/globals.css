@@ -537,6 +537,19 @@ button, a { -webkit-tap-highlight-color: transparent; }
   font-variant-numeric: tabular-nums;
 }
 .task-title-row p { margin: 0; display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; color: #102737; font-size: 14px; font-weight: 500; line-height: 1.4; }
+.theme-meadow .task-clock-icon { display: none; }
+.theme-meadow .task-scheduled-time {
+  font-family: Rajdhani, 'Arial Narrow', sans-serif;
+  font-size: 23px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .025em;
+  line-height: 1;
+}
+.theme-meadow .task-card:not(.task-completed) .task-scheduled-time {
+  color: #18394f;
+  border-bottom: 1px solid currentColor;
+}
 .importance-dot {
   display: block;
   width: 21px;

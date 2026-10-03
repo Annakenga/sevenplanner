@@ -147,6 +147,16 @@ function ClockIcon() {
   );
 }
 
+function GraphiteActionIcon({ kind }: { kind: "complete" | "edit" | "delete" }) {
+  return (
+    <svg className="graphite-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+      {kind === "complete" && <path d="m3.5 12 2.3-2.3 4.2 4.2 8.2-8.2 2.3 2.3L10 18.5Z" fill="currentColor" />}
+      {kind === "edit" && <path d="M10.2 6h3.6v11L12 20l-1.8-3V6Zm0-1.3V3.5h3.6v1.2h-3.6Z" transform="rotate(45 12 12)" fill="currentColor" />}
+      {kind === "delete" && <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />}
+    </svg>
+  );
+}
+
 function CompleteIcon() {
   const gradientId = useId();
 
@@ -185,21 +195,21 @@ function EditIcon() {
     <svg className="quick-action-styled-icon" viewBox="0 0 24 24" aria-hidden="true">
       <defs>
         <linearGradient id={gradientId} x1="7" y1="18" x2="18" y2="5" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#38576b" />
-          <stop offset="0.5" stopColor="#587b91" />
-          <stop offset="1" stopColor="#86a4b5" />
+          <stop offset="0" stopColor="var(--edit-pencil-low, #38576b)" />
+          <stop offset="0.5" stopColor="var(--edit-pencil-mid, #587b91)" />
+          <stop offset="1" stopColor="var(--edit-pencil-high, #86a4b5)" />
         </linearGradient>
       </defs>
       <path
         d="M5.15 16.15 15.8 5.5c.72-.72 1.9-.72 2.62 0l.1.1c.72.72.72 1.9 0 2.62L7.87 18.87l-4.02 1.28 1.3-4Z"
         fill={`url(#${gradientId})`}
-        stroke="#294759"
+        stroke="var(--edit-pencil-outline, #294759)"
         strokeWidth="1.05"
         strokeLinejoin="round"
       />
-      <path d="m5.15 16.15 2.72 2.72-4.02 1.28 1.3-4Z" fill="#d9bd84" stroke="#294759" strokeWidth="0.8" strokeLinejoin="round" />
-      <path d="m3.85 20.15.47-1.47.98.99-1.45.48Z" fill="#294759" />
-      <path d="m15.8 5.5 2.72 2.72-1.36 1.36-2.72-2.72 1.36-1.36Z" fill="#9bb5c3" opacity="0.8" />
+      <path d="m5.15 16.15 2.72 2.72-4.02 1.28 1.3-4Z" fill="var(--edit-pencil-tip, #d9bd84)" stroke="var(--edit-pencil-outline, #294759)" strokeWidth="0.8" strokeLinejoin="round" />
+      <path d="m3.85 20.15.47-1.47.98.99-1.45.48Z" fill="var(--edit-pencil-lead, #294759)" />
+      <path d="m15.8 5.5 2.72 2.72-1.36 1.36-2.72-2.72 1.36-1.36Z" fill="var(--edit-pencil-cap, #9bb5c3)" opacity="0.8" />
     </svg>
   );
 }
@@ -659,16 +669,16 @@ export default function SevenPrototype() {
           {task.description && <p className="task-description">{task.description}</p>}
           <div className="task-actions">
             <button type="button" data-tip="Отметить выполненной" aria-label="Отметить выполненной" onClick={() => updateTask(dateKey, task.id, (item) => ({ ...item, completed: true }))}>
-              <CompleteIcon />
+              {backgroundTheme === "graphite" ? <GraphiteActionIcon kind="complete" /> : <CompleteIcon />}
             </button>
             {!task.scheduledTime && (
               <button type="button" data-tip={task.important ? "Убрать важность" : "Отметить важной"} aria-label={task.important ? "Убрать важность" : "Отметить важной"} onClick={() => updateTask(dateKey, task.id, (item) => ({ ...item, important: !item.important }))}>
                 {renderImportance("action-importance-dot")}
               </button>
             )}
-            <button type="button" data-tip="Редактировать" aria-label="Редактировать" onClick={() => openEditor(dateKey, task)}><EditIcon /></button>
+            <button type="button" data-tip="Редактировать" aria-label="Редактировать" onClick={() => openEditor(dateKey, task)}>{backgroundTheme === "graphite" ? <GraphiteActionIcon kind="edit" /> : <EditIcon />}</button>
             <button type="button" data-tip="Удалить" aria-label="Удалить" onClick={() => setDeleteTarget({ dateKey, task })}>
-              <DeleteIcon />
+              {backgroundTheme === "graphite" ? <GraphiteActionIcon kind="delete" /> : <DeleteIcon />}
             </button>
           </div>
         </div>
@@ -705,6 +715,9 @@ export default function SevenPrototype() {
   return (
     <main className={`seven-shell theme-${backgroundTheme}`} style={{ backgroundImage: backgroundUrl ? `url("${backgroundUrl}")` : undefined }}>
       {backgroundTheme === "graphite" && <div className="graphite-wordmark" aria-hidden="true">seven</div>}
+      {backgroundTheme === "graphite" && <div className="graphite-grid-paper" aria-hidden="true" />}
+      {backgroundTheme === "graphite" && <div className="graphite-grid-paper-top" aria-hidden="true" />}
+      {backgroundTheme === "graphite" && <svg className="graphite-center-plus" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1v10M1 6h10" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>}
       <div className="mobile-message">
         <div className="mobile-message-card">
           <div className="brand-logo">Seven<span className="brand-dot">.</span></div>
@@ -777,7 +790,7 @@ export default function SevenPrototype() {
         </section>
 
         <footer className="site-footer">
-          <span>Seven</span><span className="footer-divider">·</span><span>Неделя в твоём ритме</span><span className="footer-divider">·</span><span>2026</span>
+          <span>Неделя в твоём ритме</span><span className="footer-divider">·</span><span>2026</span>
         </footer>
       </div>
 
