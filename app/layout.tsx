@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./graphite.css";
 
 export const metadata: Metadata = {
   title: "Seven. Неделя в твоем ритме",

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
+import { meadowBackground, nextBuiltInTheme, storedTheme, themeStorageKey, type PlannerTheme } from "./plannerTheme";
 import {
   localDateKey,
   migrateLegacyWeeks,
@@ -11,7 +12,6 @@ import {
 
 type DayId = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 type WeekId = "current" | "next";
-type BackgroundTheme = "lake" | "balloon" | "custom";
 
 type Task = {
   id: number;
@@ -91,11 +91,6 @@ function dayIdForDate(date: Date): DayId {
   const days: DayId[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
   return days[date.getDay()];
 }
-
-const builtInBackgrounds: Record<Exclude<BackgroundTheme, "custom">, string> = {
-  lake: "images/seven-karelia-forest-mist-night-v1.png",
-  balloon: "images/seven-bliss-night-3840x2160.jpg",
-};
 
 function ImportantIcon({ className = "", label }: { className?: string; label?: string }) {
   const gradientId = useId();
@@ -353,7 +348,7 @@ export default function SevenPrototype() {
   const [tasksByDate, setTasksByDate] = useState<TaskCalendar<Task>>({});
   const [weekId, setWeekId] = useState<WeekId>("current");
   const [calendarDate, setCalendarDate] = useState(() => new Date());
-  const [backgroundTheme, setBackgroundTheme] = useState<BackgroundTheme>("lake");
+  const [backgroundTheme, setBackgroundTheme] = useState<PlannerTheme>("graphite");
   const [customBackground, setCustomBackground] = useState<string | null>(null);
   const [backgroundMenuOpen, setBackgroundMenuOpen] = useState(false);
   const [backgroundError, setBackgroundError] = useState("");
@@ -389,18 +384,14 @@ export default function SevenPrototype() {
     const previousCalendar = savedCalendar || legacyCalendar
       ? null
       : storedTaskCalendar<Task>(window.localStorage.getItem(previousTaskStorageKey));
-    const savedBackgroundTheme = window.localStorage.getItem("seven-background-theme");
+    const savedBackgroundTheme = window.localStorage.getItem(themeStorageKey);
     const savedCustomBackground = window.localStorage.getItem("seven-custom-background");
     const initTimer = window.setTimeout(() => {
       if (savedCalendar) setTasksByDate(savedCalendar);
       else if (legacyCalendar) setTasksByDate(legacyCalendar);
       else if (previousCalendar) setTasksByDate(previousCalendar);
       if (savedCustomBackground) setCustomBackground(savedCustomBackground);
-      if (savedBackgroundTheme === "custom" && savedCustomBackground) {
-        setBackgroundTheme("custom");
-      } else if (savedBackgroundTheme === "balloon") {
-        setBackgroundTheme("balloon");
-      }
+      setBackgroundTheme(storedTheme(savedBackgroundTheme, savedCustomBackground));
       if (!welcomeDismissed) setWelcome(true);
       setInitialized(true);
     }, 0);
@@ -577,11 +568,11 @@ export default function SevenPrototype() {
   };
 
   const cycleBuiltInBackground = () => {
-    const nextTheme: Exclude<BackgroundTheme, "custom"> = backgroundTheme === "lake" ? "balloon" : "lake";
+    const nextTheme = nextBuiltInTheme(backgroundTheme);
     setBackgroundTheme(nextTheme);
     setBackgroundError("");
     setBackgroundMenuOpen(false);
-    window.localStorage.setItem("seven-background-theme", nextTheme);
+    window.localStorage.setItem(themeStorageKey, nextTheme);
   };
 
   const uploadCustomBackground = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -619,7 +610,7 @@ export default function SevenPrototype() {
 
       try {
         window.localStorage.setItem("seven-custom-background", dataUrl);
-        window.localStorage.setItem("seven-background-theme", "custom");
+        window.localStorage.setItem(themeStorageKey, "custom");
         setCustomBackground(dataUrl);
         setBackgroundTheme("custom");
         setBackgroundError("");
@@ -637,7 +628,11 @@ export default function SevenPrototype() {
 
   const backgroundUrl = backgroundTheme === "custom" && customBackground
     ? customBackground
-    : builtInBackgrounds[backgroundTheme === "balloon" ? "balloon" : "lake"];
+    : backgroundTheme === "meadow" ? meadowBackground : null;
+
+  const renderImportance = (className = "", label?: string) => backgroundTheme === "graphite"
+    ? <span className={`priority-light ${className}`} role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true} />
+    : <ImportantIcon className={className} label={label} />;
 
   const renderTask = (dateKey: string, task: Task) => (
     <article
@@ -657,7 +652,7 @@ export default function SevenPrototype() {
           )}
           <p>{task.title}</p>
         </div>
-        {isTaskImportant(task) && !task.completed && <ImportantIcon className="task-importance-dot" label="Важная задача" />}
+        {isTaskImportant(task) && !task.completed && renderImportance("task-importance-dot", "Важная задача")}
       </div>
       {!task.completed && (
         <div className="task-reveal">
@@ -668,7 +663,7 @@ export default function SevenPrototype() {
             </button>
             {!task.scheduledTime && (
               <button type="button" data-tip={task.important ? "Убрать важность" : "Отметить важной"} aria-label={task.important ? "Убрать важность" : "Отметить важной"} onClick={() => updateTask(dateKey, task.id, (item) => ({ ...item, important: !item.important }))}>
-                <ImportantIcon className="task-importance-dot" />
+                {renderImportance("action-importance-dot")}
               </button>
             )}
             <button type="button" data-tip="Редактировать" aria-label="Редактировать" onClick={() => openEditor(dateKey, task)}><EditIcon /></button>
@@ -708,7 +703,8 @@ export default function SevenPrototype() {
   );
 
   return (
-    <main className="seven-shell" style={{ backgroundImage: `url("${backgroundUrl}")` }}>
+    <main className={`seven-shell theme-${backgroundTheme}`} style={{ backgroundImage: backgroundUrl ? `url("${backgroundUrl}")` : undefined }}>
+      {backgroundTheme === "graphite" && <div className="graphite-wordmark" aria-hidden="true">seven</div>}
       <div className="mobile-message">
         <div className="mobile-message-card">
           <div className="brand-logo">Seven<span className="brand-dot">.</span></div>
@@ -749,16 +745,16 @@ export default function SevenPrototype() {
               <button
                 className={`settings-trigger ${backgroundMenuOpen ? "active" : ""}`}
                 type="button"
-                aria-label="Настройки фона"
-                data-tip="Настройки фона"
+                aria-label="Настройки темы"
+                data-tip="Настройки темы"
                 aria-expanded={backgroundMenuOpen}
                 onClick={() => { setBackgroundError(""); setBackgroundMenuOpen((open) => !open); }}
               >
                 <span className="settings-gear" aria-hidden="true" />
               </button>
               {backgroundMenuOpen && (
-                <div className="background-menu" role="menu" aria-label="Настройки фона">
-                  <button type="button" role="menuitem" onClick={cycleBuiltInBackground}>Обновить фон</button>
+                <div className="background-menu" role="menu" aria-label="Настройки темы">
+                  <button type="button" role="menuitem" onClick={cycleBuiltInBackground}>Обновить тему</button>
                   <button type="button" role="menuitem" onClick={() => backgroundFileRef.current?.click()}>Загрузить свой фон</button>
                   {backgroundError && <p role="alert">{backgroundError}</p>}
                 </div>
@@ -859,7 +855,7 @@ export default function SevenPrototype() {
               <legend>Приоритет</legend>
               <div className="priority-options">
                 <button className={!important ? "selected" : ""} type="button" disabled={Boolean(scheduledTime)} onClick={() => setImportant(false)}>Обычная</button>
-                <button className={`important-choice ${important ? "selected" : ""}`} type="button" onClick={() => setImportant(true)}><ImportantIcon /><span>Важная</span></button>
+                <button className={`important-choice ${important ? "selected" : ""}`} type="button" onClick={() => setImportant(true)}>{renderImportance()}<span>Важная</span></button>
               </div>
             </fieldset>
             <div className="modal-actions">

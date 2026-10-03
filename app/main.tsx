@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 
 import SevenPrototype from "./SevenPrototype";
 import "./globals.css";
+import "./graphite.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

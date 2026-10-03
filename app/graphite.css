@@ -1,0 +1,180 @@
+/* Graphite is scoped so the meadow and uploaded-background themes stay intact. */
+.theme-graphite {
+  --ink: #202622;
+  --muted: #5b635b;
+  --line: #bfc2bd;
+  --orange: #ee4f27;
+  --orange-light: #ffa276;
+  --button-accent: #ee4f27;
+  --button-accent-shadow: none;
+  position: relative;
+  isolation: isolate;
+  background: #ebebeb;
+  color: var(--ink);
+}
+.theme-graphite .desktop-planner { position: relative; z-index: 1; }
+.graphite-wordmark {
+  position: absolute;
+  bottom: -85px;
+  left: 27px;
+  z-index: 0;
+  color: rgba(255,255,255,.55);
+  font: 800 310px/.95 Manrope, sans-serif;
+  letter-spacing: -.095em;
+  pointer-events: none;
+}
+.theme-graphite .metrics,
+.theme-graphite .clear-week-button,
+.theme-graphite .settings-trigger,
+.theme-graphite .week-switch {
+  background: #ebebeb;
+  border-color: #bcc2b9;
+  border-radius: 5px;
+  box-shadow: none;
+}
+.theme-graphite .progress-bar { background: #ccd0c8; box-shadow: none; }
+.theme-graphite .progress-bar-value { background: var(--orange); box-shadow: none; }
+.theme-graphite .completion-summary strong { color: var(--ink); }
+.theme-graphite .completion-summary span,
+.theme-graphite .clear-week-button { color: var(--muted); }
+.theme-graphite .settings-gear { background: var(--ink); }
+.theme-graphite .brand-logo {
+  color: var(--ink);
+  font-family: Manrope, sans-serif;
+  font-style: normal;
+  font-weight: 850;
+  letter-spacing: -.09em;
+  text-transform: lowercase;
+  text-shadow: none;
+}
+.theme-graphite .brand-dot { color: var(--orange); }
+.theme-graphite .week-switch button { color: var(--muted); border-radius: 3px; }
+.theme-graphite .week-switch button:hover { background: #dedede; color: var(--ink); }
+.theme-graphite .week-switch button.active { background: var(--orange); color: #fff; box-shadow: none; }
+.theme-graphite .day-panel,
+.theme-graphite .weekend-panel {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.theme-graphite .week-grid > .day-panel,
+.theme-graphite .week-grid > .weekend-panel { position: relative; overflow: visible; }
+.theme-graphite .week-grid > .day-panel,
+.theme-graphite .weekend-panel > .day-panel { padding: 16px 13px 12px; border: 0; }
+.theme-graphite .week-grid > :not(:first-child)::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 24px;
+  bottom: 0;
+  width: 1px;
+  background: #bfc2bd;
+  pointer-events: none;
+}
+.theme-graphite .week-grid > .today::before { background: var(--orange); }
+.theme-graphite .day-header { border-top: 3px solid #262e29; padding-top: 12px; }
+.theme-graphite .day-header h2 { color: var(--ink); font-weight: 800; letter-spacing: -.045em; }
+.theme-graphite .day-header p { color: var(--muted); font-family: monospace; text-transform: uppercase; letter-spacing: .045em; font-size: 12px; }
+.theme-graphite .day-panel.today .day-header { border-color: var(--orange); }
+.theme-graphite .day-panel.today .day-header h2 { color: var(--orange); }
+.theme-graphite .today-label { background: var(--orange); color: #fff; border-radius: 2px; }
+.theme-graphite .task-card {
+  padding-top: 7px;
+  padding-bottom: 7px;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  background: #fff;
+  color: #283129;
+  box-shadow: none;
+}
+.theme-graphite .task-title-row p { color: #283129; overflow-wrap: normal; }
+.theme-graphite .task-card:not(.task-completed):hover { background: #fff; box-shadow: 0 4px 12px #20262214; }
+.theme-graphite .task-important:not(.task-completed),
+.theme-graphite .task-important:not(.task-completed):hover,
+.theme-graphite .day-panel.today .task-important:not(.task-completed),
+.theme-graphite .day-panel.today .task-important:not(.task-completed):hover { background: #262e29; border-color: transparent; }
+.theme-graphite .task-important .task-title-row p { color: #fffef4; }
+.theme-graphite .task-clock-icon { display: none; }
+.theme-graphite .task-scheduled-time {
+  color: #ffa276;
+  font-family: Rajdhani, 'Arial Narrow', sans-serif;
+  font-size: 23px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .025em;
+  line-height: 1;
+  border-bottom: 1px solid #ee714c;
+}
+.theme-graphite .priority-light {
+  display: block;
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  align-self: center;
+  border-radius: 50%;
+  background: #ffe16a;
+  box-shadow: 0 0 4px #ffe16a66, 0 0 9px #ffd23c38;
+}
+.theme-graphite .task-title-row > .priority-light { margin-right: 4px; }
+.theme-graphite .task-important .task-description { color: #d5d9d6; }
+.theme-graphite .task-important .task-actions button { background: #ffffff14; color: #fff; }
+.theme-graphite .task-important .task-actions button:hover { background: #ffffff26; }
+.theme-graphite .task-completed { background: transparent; box-shadow: none; }
+.theme-graphite .task-completed .task-title-row p,
+.theme-graphite .task-completed .task-scheduled-time { color: #737b72; text-decoration-color: #737b72; }
+.theme-graphite .task-completed .task-scheduled-time { border-color: transparent; }
+.theme-graphite .add-task { border-radius: 4px; background: transparent; border: 1px solid #b6bdb2; color: #434d42; }
+.theme-graphite .add-task:hover { background: var(--orange); color: #fff; border-color: var(--orange); }
+.theme-graphite .site-footer { color: #626262; text-shadow: none; }
+.theme-graphite .custom-scrollbar-thumb { background: #8b918b; }
+
+/* Menus and dialogs use the same palette, without changing their behavior. */
+.theme-graphite .background-menu,
+.theme-graphite .modal-card,
+.theme-graphite .mobile-message-card {
+  color: var(--ink);
+  background: #f4f4f4;
+  border-color: #c6c6c6;
+  border-radius: 8px;
+  box-shadow: 0 16px 50px #00000024;
+}
+.theme-graphite .background-menu button { color: var(--ink); }
+.theme-graphite .background-menu button:hover,
+.theme-graphite .background-menu button:focus-visible { background: #e2e2e2; color: var(--ink); }
+.theme-graphite .modal-card p,
+.theme-graphite .welcome-check,
+.theme-graphite .task-editor label,
+.theme-graphite .task-editor legend { color: #505650; }
+.theme-graphite .modal-close { color: #626262; }
+.theme-graphite .modal-close:hover { color: var(--orange); }
+.theme-graphite .welcome-storage-note { background: #e6e6e6; border-color: #ccc; color: #505650 !important; }
+.theme-graphite .welcome-storage-note strong { color: var(--ink); }
+.theme-graphite .button { border-radius: 4px; }
+.theme-graphite .secondary-button { color: var(--ink); background: #e8e8e8; border-color: #ccc; }
+.theme-graphite .secondary-button:hover { background: #dedede; }
+.theme-graphite .task-editor label > span { color: #737373; }
+.theme-graphite .task-editor input,
+.theme-graphite .task-editor textarea,
+.theme-graphite .task-time-trigger { color: var(--ink); background: #fff; border-color: #c6c6c6; border-radius: 4px; }
+.theme-graphite .task-editor input:focus,
+.theme-graphite .task-editor textarea:focus { background: #fff; border-color: var(--orange); }
+.theme-graphite .task-editor input::placeholder,
+.theme-graphite .task-editor textarea::placeholder { color: #858585; }
+.theme-graphite .task-time-menu { background: #fff; border-color: #ccc; border-radius: 4px; }
+.theme-graphite .task-time-chevron { border-color: #626262; }
+.theme-graphite .task-time-option { color: var(--ink); }
+.theme-graphite .task-time-option:hover,
+.theme-graphite .task-time-option:focus-visible { background: #eee; }
+.theme-graphite .task-time-option.selected { background: #f9ded5; color: var(--ink); }
+.theme-graphite .priority-options button,
+.theme-graphite .priority-options button.important-choice:not(.selected) { color: #505650; background: #e8e8e8; border-color: #ccc; border-radius: 4px; }
+.theme-graphite .priority-options button.selected { background: #d9d9d9; color: var(--ink); border-color: #aaa; box-shadow: none; }
+.theme-graphite .priority-options button.important-choice.selected { background: #262e29; color: #fffef4; border-color: #262e29; }
+.theme-graphite .priority-options button.important-choice:not(.selected) .priority-light { background: #aaa; box-shadow: none; }
+.theme-graphite .drag-toast { background: #fff; color: var(--ink); border-color: #ccc; border-radius: 6px; }
+@media (max-width: 900px), (orientation: portrait) and (max-width: 1100px) {
+  .graphite-wordmark { display: none; }
+}
