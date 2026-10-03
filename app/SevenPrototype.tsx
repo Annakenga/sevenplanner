@@ -272,16 +272,7 @@ function BulbIcon() {
   );
 }
 
-function BroomIcon() {
-  return (
-    <svg className="clear-week-icon" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M14.1 9.55 16.86 3a1.72 1.72 0 0 1 3.17 1.33l-2.2 5.22h.48c.9 0 1.71.51 2.11 1.32l.74 1.5H5.62l1.25-1.72a2.66 2.66 0 0 1 2.15-1.1h5.08Z" fill="currentColor" />
-      <path d="M6.06 13.3h14.52l.95 7.05h-3.7l-.42-1.74-.41 1.74H8.55l-.42-1.74-.42 1.74H3.94c.38-2.5 1.08-4.85 2.12-7.05Z" fill="currentColor" />
-    </svg>
-  );
-}
-
-function ScrollableTaskList({ children, layoutKey }: { children: React.ReactNode; layoutKey: string }) {
+function ScrollableTaskList({ children, layoutKey, visibleTaskCount }: { children: React.ReactNode; layoutKey: string; visibleTaskCount?: number }) {
   const listRef = useRef<HTMLDivElement>(null);
   const [scrollbar, setScrollbar] = useState({ visible: false, height: 0, top: 0 });
 
@@ -294,6 +285,21 @@ function ScrollableTaskList({ children, layoutKey }: { children: React.ReactNode
       const header = panel?.querySelector<HTMLElement>(".day-header");
       const addButton = panel?.querySelector<HTMLElement>(".add-task");
       if (!panel || !header || !addButton) return;
+
+      if (visibleTaskCount) {
+        const listStyle = window.getComputedStyle(list);
+        const cards = Array.from(list.children).slice(0, visibleTaskCount) as HTMLElement[];
+        const gap = Number.parseFloat(listStyle.rowGap) || 0;
+        const padding = (Number.parseFloat(listStyle.paddingTop) || 0) + (Number.parseFloat(listStyle.paddingBottom) || 0);
+        const cardsHeight = cards.reduce((height, card) => {
+          const style = window.getComputedStyle(card);
+          return height + (Number.parseFloat(style.height) || card.offsetHeight) + (Number.parseFloat(style.marginTop) || 0) + (Number.parseFloat(style.marginBottom) || 0);
+        }, 0);
+        // Weekend lists show three whole cards, including wrapped titles and
+        // expanded actions, instead of clipping them to half the viewport.
+        list.style.maxHeight = `${Math.ceil(padding + cardsHeight + gap * Math.max(0, cards.length - 1))}px`;
+        return;
+      }
 
       const panelStyle = window.getComputedStyle(panel);
       const panelTop = panel.getBoundingClientRect().top;
@@ -334,13 +340,22 @@ function ScrollableTaskList({ children, layoutKey }: { children: React.ReactNode
 
     list.addEventListener("scroll", updateScrollbar, { passive: true });
     window.addEventListener("resize", updateLayout);
+    let layoutFrame = 0;
+    const observer = new ResizeObserver(() => {
+      window.cancelAnimationFrame(layoutFrame);
+      layoutFrame = window.requestAnimationFrame(updateLayout);
+    });
+    observer.observe(list);
+    Array.from(list.children).forEach(card => observer.observe(card));
     updateLayout();
 
     return () => {
       list.removeEventListener("scroll", updateScrollbar);
       window.removeEventListener("resize", updateLayout);
+      observer.disconnect();
+      window.cancelAnimationFrame(layoutFrame);
     };
-  }, [layoutKey]);
+  }, [layoutKey, visibleTaskCount]);
 
   return (
     <div className="task-list-shell">
@@ -366,7 +381,6 @@ export default function SevenPrototype() {
   const [neverWelcome, setNeverWelcome] = useState(false);
   const [editor, setEditor] = useState<{ dateKey: string; task?: Task } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ dateKey: string; task: Task } | null>(null);
-  const [clearWeekOpen, setClearWeekOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
@@ -384,6 +398,8 @@ export default function SevenPrototype() {
     updateCalendarDate();
     const calendarTimer = window.setInterval(updateCalendarDate, 60_000);
 
+    // Discard test data from the removed sticky-note experiment only.
+    window.localStorage.removeItem("seven-notes-v1");
     const welcomeDismissed = window.localStorage.getItem("seven-welcome-dismissed") === "yes";
     const savedCalendar = storedTaskCalendar<Task>(window.localStorage.getItem(taskStorageKey));
     const legacyCalendar = savedCalendar
@@ -562,16 +578,6 @@ export default function SevenPrototype() {
     setDeleteTarget(null);
   };
 
-  const confirmClearWeek = () => {
-    setTasksByDate((current) => {
-      const clearedCalendar = { ...current };
-      displayDays.forEach((day) => delete clearedCalendar[day.dateKey]);
-      window.localStorage.setItem(taskStorageKey, JSON.stringify(clearedCalendar));
-      return clearedCalendar;
-    });
-    setClearWeekOpen(false);
-  };
-
   const dropOnDay = (targetDateKey: string) => {
     if (!dragged) return;
     const task = (tasksByDate[dragged.dateKey] ?? []).find((item) => item.id === dragged.taskId);
@@ -674,7 +680,7 @@ export default function SevenPrototype() {
         </div>
         {day.id === todayDayId && weekId === "current" && <span className="today-label">Сегодня</span>}
       </header>
-      <ScrollableTaskList layoutKey={(tasksByDate[day.dateKey] ?? []).map((task) => `${task.id}:${task.title}:${task.scheduledTime ?? ""}:${task.completed}:${task.important}`).join("|")}>
+      <ScrollableTaskList visibleTaskCount={compact ? 3 : undefined} layoutKey={(tasksByDate[day.dateKey] ?? []).map((task) => `${task.id}:${task.title}:${task.scheduledTime ?? ""}:${task.completed}:${task.important}`).join("|")}>
         {sortTasks(tasksByDate[day.dateKey] ?? []).map((task) => renderTask(day.dateKey, task))}
       </ScrollableTaskList>
       <button className="add-task" type="button" aria-label="Добавить задачу" onClick={() => openEditor(day.dateKey)}><span aria-hidden="true">＋</span></button>
@@ -710,15 +716,6 @@ export default function SevenPrototype() {
               </div>
               <div className="completion-summary"><strong>{completedCount}/{allTasks.length}</strong><span>выполнено</span></div>
             </div>
-            <button
-              className="clear-week-button"
-              type="button"
-              aria-label="Очистить задачи на этой неделе"
-              data-tip="Очистить неделю"
-              onClick={() => setClearWeekOpen(true)}
-            >
-              <BroomIcon />
-            </button>
           </div>
           <div className="brand-logo topbar-logo">Seven<span className="brand-dot">.</span></div>
           <div className="brand-controls">
@@ -858,22 +855,6 @@ export default function SevenPrototype() {
         </div>
       )}
 
-      {clearWeekOpen && (
-        <div className="modal-layer">
-          <section className="modal-card clear-week-card" role="dialog" aria-modal="true" aria-labelledby="clear-week-title">
-            <span className="modal-kicker danger-kicker">Очистка недели</span>
-            <h2 id="clear-week-title">Очистить все задачи?</h2>
-            <p className="clear-week-copy">
-              <span>Хочешь очистить текущую неделю</span>
-              <span>и начать с чистого листа?)</span>
-            </p>
-            <div className="modal-actions">
-              <button className="button danger-button" type="button" onClick={confirmClearWeek}>Да</button>
-              <button className="button secondary-button" type="button" autoFocus onClick={() => setClearWeekOpen(false)}>Не хочу</button>
-            </div>
-          </section>
-        </div>
-      )}
     </main>
   );
 }
