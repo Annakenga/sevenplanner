@@ -517,7 +517,7 @@ export default function SevenPrototype() {
       resolution.removeEventListener("change", watchResolution);
       window.removeEventListener("resize", alignDividers);
     };
-  }, []);
+  }, [weekId]);
 
   useEffect(() => {
     if (!backgroundMenuOpen) return;
