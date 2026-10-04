@@ -435,9 +435,55 @@ export default function SevenPrototype() {
     // Equal grid columns can land on fractional device pixels (especially at
     // Windows 125%/150% scaling). Snap both edges of every divider consistently.
     const alignDividers = () => {
+      if (!grid.offsetWidth) return;
       const ratio = window.devicePixelRatio || 1;
       const width = Math.max(1, Math.round(ratio)) / ratio;
       const columns = Array.from(grid.children) as HTMLElement[];
+      const gridTop = grid.getBoundingClientRect().top;
+      const dividerTop = 24;
+      const wordmark = grid.closest("main")?.querySelector<HTMLElement>(".graphite-wordmark");
+      const wordmarkStyle = wordmark && window.getComputedStyle(wordmark);
+      let wordmarkInkInset = 0;
+      if (wordmark && wordmarkStyle) {
+        const context = document.createElement("canvas").getContext("2d");
+        if (context) {
+          context.font = `${wordmarkStyle.fontWeight} ${wordmarkStyle.fontSize} ${wordmarkStyle.fontFamily}`;
+          const metrics = context.measureText(wordmark.textContent ?? "seven");
+          const lineHeight = wordmark.getBoundingClientRect().height;
+          wordmarkInkInset = Number.isFinite(metrics.fontBoundingBoxAscent)
+            ? (lineHeight - metrics.fontBoundingBoxAscent - metrics.fontBoundingBoxDescent) / 2
+              + metrics.fontBoundingBoxAscent - metrics.actualBoundingBoxAscent
+            : Number.parseFloat(wordmarkStyle.fontSize) * .3;
+        }
+      }
+      // Use the viewport position of the wordmark, not the content height of
+      // the page: adding tasks must not lengthen the dividers.
+      const longEnd = wordmark && wordmarkStyle
+        ? window.innerHeight - Number.parseFloat(wordmarkStyle.bottom) - wordmark.getBoundingClientRect().height + wordmarkInkInset
+        : window.innerHeight - 209;
+      const weekend = columns.at(-1);
+      const emptyWeekendPanels = Array.from(weekend?.children ?? []) as HTMLElement[];
+      const px = (value: string) => Number.parseFloat(value) || 0;
+      let shortEnd = gridTop;
+      emptyWeekendPanels.forEach((panel, index) => {
+        const header = panel.querySelector<HTMLElement>(".day-header");
+        const list = panel.querySelector<HTMLElement>(".task-list");
+        const add = panel.querySelector<HTMLElement>(".add-task");
+        if (!header || !list || !add) return;
+        const style = window.getComputedStyle(panel);
+        const listStyle = window.getComputedStyle(list);
+        // Measure the empty-week reference, excluding task-card heights. The
+        // last endpoint is the bottom of Sunday's add button, without padding.
+        shortEnd += px(style.borderTopWidth) + px(style.paddingTop)
+          + header.getBoundingClientRect().height + px(style.rowGap) * 2
+          + px(listStyle.paddingTop) + px(listStyle.paddingBottom)
+          + px(listStyle.borderTopWidth) + px(listStyle.borderBottomWidth)
+          + add.getBoundingClientRect().height;
+        if (index < emptyWeekendPanels.length - 1) {
+          shortEnd += px(style.paddingBottom) + px(style.borderBottomWidth)
+            + px(window.getComputedStyle(weekend!).rowGap);
+        }
+      });
       columns.slice(1).forEach((column, index) => {
         const left = column.getBoundingClientRect().left;
         const previousRight = columns[index].getBoundingClientRect().right;
@@ -445,6 +491,11 @@ export default function SevenPrototype() {
         const alignedLeft = Math.round((center - width / 2) * ratio) / ratio;
         column.style.setProperty("--divider-left", `${alignedLeft - left}px`);
         column.style.setProperty("--divider-width", `${width}px`);
+        const start = gridTop + dividerTop;
+        const height = index < 3
+          ? longEnd - 24 - start
+          : (shortEnd - start) * (index === 3 ? 1.35 : 1);
+        column.style.setProperty("--divider-height", `${Math.max(48, Math.round(height * ratio) / ratio)}px`);
       });
     };
     const observer = new ResizeObserver(alignDividers);
@@ -457,8 +508,11 @@ export default function SevenPrototype() {
       resolution.addEventListener("change", watchResolution);
     };
     watchResolution();
+    let mounted = true;
+    document.fonts.ready.then(() => { if (mounted) alignDividers(); });
     window.addEventListener("resize", alignDividers);
     return () => {
+      mounted = false;
       observer.disconnect();
       resolution.removeEventListener("change", watchResolution);
       window.removeEventListener("resize", alignDividers);
@@ -678,7 +732,7 @@ export default function SevenPrototype() {
           <h2><span className="day-full">{day.full}</span><span className="day-short">{day.short}</span></h2>
           <p>{day.date}</p>
         </div>
-        {day.id === todayDayId && weekId === "current" && <span className="today-label">Сегодня</span>}
+        {day.id === todayDayId && weekId === "current" && <span className="today-label">сегодня</span>}
       </header>
       <ScrollableTaskList visibleTaskCount={compact ? 3 : undefined} layoutKey={(tasksByDate[day.dateKey] ?? []).map((task) => `${task.id}:${task.title}:${task.scheduledTime ?? ""}:${task.completed}:${task.important}`).join("|")}>
         {sortTasks(tasksByDate[day.dateKey] ?? []).map((task) => renderTask(day.dateKey, task))}

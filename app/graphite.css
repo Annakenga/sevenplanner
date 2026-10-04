@@ -97,11 +97,11 @@
 .theme-graphite .weekend-panel > .day-panel { padding: 16px 13px 12px; border: 0; }
 .theme-graphite .weekend-panel > .day-panel { max-height: none; }
 .theme-graphite .week-grid > :not(:first-child)::before {
-  content: none;
+  content: '';
   position: absolute;
   left: var(--divider-left, -5px);
   top: 24px;
-  bottom: 0;
+  height: var(--divider-height, 320px);
   width: var(--divider-width, 1px);
   background: #cecece;
   mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 24px), transparent);
@@ -112,7 +112,7 @@
 .theme-graphite .day-header p { color: var(--muted); font-family: monospace; text-transform: uppercase; letter-spacing: .045em; font-size: 12px; }
 .theme-graphite .day-panel.today .day-header { border-color: var(--orange); }
 .theme-graphite .day-panel.today .day-header h2 { color: var(--orange); }
-.theme-graphite .today-label { background: var(--orange); color: #fff; border-radius: 2px; }
+.theme-graphite .today-label { background: var(--orange); color: #fff; border-radius: 999px; padding: 5px 14px; }
 .theme-graphite .task-card {
   padding-top: 7px;
   padding-bottom: 7px;
